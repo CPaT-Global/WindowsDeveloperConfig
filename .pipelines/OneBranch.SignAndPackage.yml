@@ -4,6 +4,9 @@
 trigger: none
 pr: none
 
+variables:
+  WindowsContainerImage: onebranch.azurecr.io/windows/ltsc/sdl:latest
+
 resources:
   repositories:
     - repository: templates
