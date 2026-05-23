@@ -1,7 +1,7 @@
 # WindowsDevSetupScripts — Developer Guide
 
 > 👋 **Just want to run something?** See the
-> [top-level README](../README.md). This file is the contributor /
+> [top-level README](../../README.md). This file is the contributor /
 > CI / "how the sausage gets made" guide.
 
 Opinionated, CI-validated configurations for bootstrapping developer

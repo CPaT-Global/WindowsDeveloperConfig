@@ -2,7 +2,7 @@
 
 A [PowerToys Command Palette](https://learn.microsoft.com/en-us/windows/powertoys/command-palette/overview)
 extension that surfaces the developer flows defined in this repo's
-[`manifest.yml`](../manifest.yml). Pick a flow, hit Enter, and the extension
+[`manifest.yml`](../../manifest.yml). Pick a flow, hit Enter, and the extension
 launches `winget configure` (Windows) or `wsl bash` (Linux) in a new Windows
 Terminal tab — no need to remember which `.winget` file goes with which
 toolchain.
@@ -11,12 +11,12 @@ toolchain.
 
 This extension launches flows exclusively through `winget configure`. If
 that subcommand is not wired up on the host, no Windows flow surfaced by
-CmdPal can succeed. See the
-[top-level README's Prerequisites section](../README.md#prerequisites-windows)
-for the three conditions that must hold (current App Installer, the
+CmdPal can succeed. See the developer guide's
+[`Prerequisites (Windows)`](../../docs/development.md#prerequisites-windows)
+section for the three conditions that must hold (current App Installer, the
 `configuration` feature enabled, and no blocking ADMX policy) and the
 one-line smoke test. The shared preflight
-[`scripts/windows/_common/assert-winget-configure.ps1`](../scripts/windows/_common/assert-winget-configure.ps1)
+[`Workloads/_common/assert-winget-configure.ps1`](../../Workloads/_common/assert-winget-configure.ps1)
 enforces this at runtime with an actionable error message.
 
 ## Source of truth
@@ -104,7 +104,7 @@ WindowsDevSetupScripts convention.
 `winget configure` against a real DSC config can install packages, change
 registry values, disable services, and so on — not the kind of thing we
 want to launch on a stray Enter key. So `🪟 Run Windows Setup` is a
-[`ConfirmableCommand`](https://learn.microsoft.com/windows/powertoys/command-palette/):
+[`ConfirmableCommand`](https://learn.microsoft.com/windows/powertoys/command-palette/overview):
 selecting it pops a confirmation dialog with the script path and a short
 note that the flows are idempotent. Confirm to launch the wt.exe tab;
 cancel to back out.
