@@ -247,19 +247,6 @@ resources:
     description: Open File Explorer to This PC
 
 - type: Microsoft.Windows/Registry
-  name: AccountInsights
-  dependsOn:
-  - ElevationCheck
-  properties:
-    keyPath: HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\SystemSettings\AccountNotifications
-    valueName: EnableAccountNotifications
-    valueData:
-      DWord: 0
-    _exist: true
-  metadata:
-    description: Disable account-based insights
-
-- type: Microsoft.Windows/Registry
   name: FrequentFolders
   dependsOn:
   - ElevationCheck
@@ -338,16 +325,6 @@ resources:
     valueData:
       DWord: 0
 
-#- type: Microsoft.Windows/Registry
-#  name: SpotlightOff
-#  dependsOn:
-#  - ElevationCheck
-#  properties:
-#    keyPath: HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\ContentDeliveryManager
-#    valueName: RotatingLockScreenOverlayEnabled
-#    valueData:
-#      DWord: 0
-
 # =============================================================================
 # Taskbar
 # =============================================================================
@@ -365,20 +342,6 @@ resources:
       DWord: 0
   metadata:
     description: Hide Widgets button on the taskbar
-
-# Hide Search box (replaces Microsoft.Windows.Developer/Taskbar
-# SearchboxMode:Hide). 0 = hidden.
-#- type: Microsoft.Windows/Registry
-#  name: TaskbarHideSearch
-#  dependsOn:
-#  - ElevationCheck
-#  properties:
-#    keyPath: HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Search
-#    valueName: SearchboxTaskbarMode
-#    valueData:
-#      DWord: 0
-#  metadata:
-#    description: Hide Search box on the taskbar
 
 - type: Microsoft.Windows/Registry
   name: BluetoothOff
@@ -418,6 +381,19 @@ resources:
     description: Disable web search in Start/Search
 
 - type: Microsoft.Windows/Registry
+  name: SearchHightlightOff
+  dependsOn:
+  - ElevationCheck
+  properties:
+    keyPath: HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\SearchSettings
+    valueName: IsDynamicSearchBoxEnabled
+    valueData:
+      DWord: 0
+    _exist: true
+  metadata:
+    description: Disable Show search highlights
+
+- type: Microsoft.Windows/Registry
   name: StartRecommendations
   dependsOn:
   - ElevationCheck
@@ -433,32 +409,6 @@ resources:
 # =============================================================================
 # Services and Features
 # =============================================================================
-
-- type: Microsoft.Windows/Registry
-  name: ClickToDo
-  dependsOn:
-  - ElevationCheck
-  properties:
-    keyPath: HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\ClickToDoAndScreenCapture
-    valueName: Enabled
-    valueData:
-      DWord: 0
-    _exist: true
-  metadata:
-    description: Disable Click To Do
-
-- type: Microsoft.Windows/Registry
-  name: RecallOff
-  dependsOn:
-  - ElevationCheck
-  properties:
-    keyPath: HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Recall
-    valueName: Enabled
-    valueData:
-      DWord: 0
-    _exist: true
-  metadata:
-    description: Disable Recall
 
 - type: Microsoft.Windows/Registry
   name: WidgetServiceOff
