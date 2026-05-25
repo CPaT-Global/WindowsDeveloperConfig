@@ -66,7 +66,7 @@ resources:
 # Include Oh My Posh in PS profile
 # =============================================================================
 - type: Microsoft.DSC.Transitional/RunCommandOnSet
-  name: InstallAndSetCascadiaCodeNerdFonts 
+  name: InstallCascadiaCodeNerdFonts 
   dependsOn:
     - PowerShell
   properties:
@@ -128,32 +128,54 @@ resources:
           }
 
           Remove-Item $zipPath -Force
-
-           $fontFace = 'Cascadia Mono NF'
- 
-            $paths = @(
-                "$env:LOCALAPPDATA\Packages\Microsoft.WindowsTerminal_8wekyb3d8bbcc\LocalState\settings.json",
-                "$env:LOCALAPPDATA\Packages\Microsoft.WindowsTerminalPreview_8wekyb3d8bbcc\LocalState\settings.json",
-                "$env:LOCALAPPDATA\Microsoft\Windows Terminal\settings.json"
-            )
-            $settingsPath = $paths | Where-Object { Test-Path $_ } | Select-Object -First 1
-            if (-not $settingsPath) { throw 'Windows Terminal settings.json not found.' }
-
-            Copy-Item $settingsPath "$settingsPath.bak" -Force
-
-            $json = Get-Content $settingsPath -Raw | ConvertFrom-Json -AsHashtable
-
-            if (-not $json.profiles)               { $json.profiles = [ordered]@{} }
-            if (-not $json.profiles.defaults)      { $json.profiles.defaults = [ordered]@{} }
-            if (-not $json.profiles.defaults.font) { $json.profiles.defaults.font = [ordered]@{} }
-            $json.profiles.defaults.font.face = $fontFace
-
-            $json | ConvertTo-Json -Depth 32 | Set-Content $settingsPath -Encoding utf8
-            Write-Host "Set font to '$fontFace' in $settingsPath (backup: $settingsPath.bak)
           Write-Host "`nDone. Restart any running apps (terminal, editors) to pick up the new fonts."
       treatAsArray: true
   metadata:
-    description: Install and Set Cascadia Code Nerd Fonts
+    description: Install Cascadia Code Nerd Fonts
+
+# =============================================================================
+# Script-Based Items (RunCommandOnSet)
+# PowerShell :: Microsoft.DSC.Transitional/PowerShellScript should be what we use 
+#
+# Include Oh My Posh in PS profile
+# =============================================================================
+- type: Microsoft.DSC.Transitional/RunCommandOnSet
+  name: SetCascadiaNfAsDefault
+  dependsOn:
+    - InstallCascadiaCodeNerdFonts
+  properties:
+    executable: pwsh.exe
+    arguments:
+      "0": -NoProfile
+      "1": -NoLogo
+      "2": -Command
+      "3": |
+          $fontFace = 'Cascadia Mono NF'
+
+          $settingsPath =
+              @(Get-ChildItem "$env:LOCALAPPDATA\Packages" -Filter 'Microsoft.WindowsTerminal*' -Directory -ErrorAction SilentlyContinue |
+                  ForEach-Object { Join-Path $_.FullName 'LocalState\settings.json' }) +
+              "$env:LOCALAPPDATA\Microsoft\Windows Terminal\settings.json" |
+              Where-Object { Test-Path $_ } |
+              Select-Object -First 1
+
+          if (-not $settingsPath) { throw 'Windows Terminal settings.json not found.' }
+          Write-Host "Using: $settingsPath"
+
+          Copy-Item $settingsPath "$settingsPath.bak" -Force
+
+          $json = Get-Content $settingsPath -Raw | ConvertFrom-Json -AsHashtable
+
+          if (-not $json.profiles)               { $json.profiles = [ordered]@{} }
+          if (-not $json.profiles.defaults)      { $json.profiles.defaults = [ordered]@{} }
+          if (-not $json.profiles.defaults.font) { $json.profiles.defaults.font = [ordered]@{} }
+          $json.profiles.defaults.font.face = $fontFace
+
+          $json | ConvertTo-Json -Depth 32 | Set-Content $settingsPath -Encoding utf8
+          Write-Host "Set font to '$fontFace'  (backup: $settingsPath.bak)"
+      treatAsArray: true
+  metadata:
+    description: Making Cascaida fonts default
 
 # =============================================================================
 # Script-Based Items (RunCommandOnSet)
