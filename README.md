@@ -47,7 +47,7 @@ If that fails or `winget configure` still acts like it doesn't exist, see [Troub
 
 ## 🖥️ Windows Dev Config
 
-*aka Calm OS. Turns a fresh Windows 11 box into a clean, distraction-free dev workstation in one shot.*
+*Turns a fresh Windows 11 box into a clean, distraction-free dev workstation in one shot.*
 
 A single DSC config that installs the usual dev tools, applies our standard Windows settings, and bootstraps WSL + Ubuntu through the required reboot. Non-interactive. Idempotent. Safe to re-run on an existing machine.
 
