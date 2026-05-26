@@ -1,10 +1,10 @@
 # Dev Configuration
 
-A WinGet Configuration (DSC) file that sets up a clean, lightweight, distraction-free developer workstation. The goal is a PC state that devs actually love using: no clutter, no noise, just the tools and settings that matter.
+A WinGet Configuration (DSC) file that sets up a clean, lightweight, distraction-free developer workstation. The goal is a PC state that devs actually love using: no clutter, no noise, just the tools you need.
 
 This mirrors the curated environment currently provided by Cloud PC, so developers get a consistent experience regardless of device.
 
-The flow is a single DSC document (`dev-config.winget`) that handles everything end-to-end: elevation, the OS tweaks, the apps, and the WSL platform + Ubuntu install (including the reboot dance).
+The flow is a single DSC document (`dev-config.winget`) that handles everything end-to-end: elevation, the OS tweaks, the apps, the fonts, the shell prompt, and the WSL platform + Ubuntu install (including the reboot dance).
 
 > **Author:** Hamza Usmani.
 
@@ -23,7 +23,9 @@ The flow is a single DSC document (`dev-config.winget`) that handles everything 
   - [Start, Search, Notifications](#start-search-notifications)
   - [Services and features](#services-and-features)
   - [Edge](#edge)
+  - [Fonts](#fonts)
   - [Windows Terminal](#windows-terminal)
+  - [PowerShell profile](#powershell-profile)
 - [Customization](#customization)
 - [Design decisions](#design-decisions)
 - [Known caveats](#known-caveats)
@@ -34,7 +36,7 @@ The flow is a single DSC document (`dev-config.winget`) that handles everything 
 
 - **A PC devs actually want to use.** Clean Explorer, dark theme, no pop-ups, no recommendations, no widgets. Just your code and your tools.
 - **Cloud PC parity.** Same tooling, OS settings, and policies as the current Cloud PC image.
-- **One command.** `winget configure -f dev-config.winget --accept-configuration-agreements --disable-interactivity` takes a fresh Windows machine to fully ready, including WSL + Ubuntu (with an auto-resume across the WSL reboot).
+- **One command.** `winget configure -f dev-config.winget --accept-configuration-agreements --disable-interactivity` takes a fresh Windows machine to fully ready, including WSL + Ubuntu (with an auto-resume across the required reboot).
 - **Idempotent.** Safe to re-run on existing machines to apply updates or fix drift. Every resource has a `testScript` or DSC-native idempotency.
 
 ## Prerequisites
@@ -55,7 +57,7 @@ This is the canonical invocation documented in the header of `dev-config.winget`
 
 **What to expect:**
 
-1. The first phase applies all OS tweaks and installs apps.
+1. The first phase applies all OS tweaks, installs apps, installs Cascadia Code/Mono Nerd Fonts, and configures Windows Terminal and the PowerShell profile.
 2. WSL platform components install; the DSC reboots the machine and registers a `RunOnce` resume.
 3. After login, winget configure resumes automatically and installs the default Ubuntu distro.
 4. Open Ubuntu from the Start menu to complete its first-launch setup (create a UNIX username and password).
@@ -64,29 +66,36 @@ The configuration is idempotent, so it is safe to re-run after reboot or at any 
 
 ## What this configures
 
-- **10 apps** via winget (PowerShell 7, Git, GitHub CLI, VS Code, .NET SDK 10, Python 3.13, UV, Node.js, plus optional Oh My Posh and PowerToys).
+- **13 apps** via winget (PowerShell 7, Git, GitHub CLI, GitHub Copilot CLI, VS Code, .NET SDK 10, Python 3.13, UV, Node.js LTS, NVM for Windows, Windows Application CLI, plus optional Oh My Posh and PowerToys).
 - **WSL + Ubuntu**, installed via 3 transitional script resources that bracket a reboot (Phase 2/3/4 below).
-- **~21 registry settings** for theme, Explorer, Taskbar, Search, Start, Edge, Sudo, and the Widget service.
-- **2 script resources** beyond the WSL phases: an elevation gate that re-launches winget as admin if needed, and a Windows Terminal post-install that sets PowerShell 7 as the default profile.
+- **~24 registry settings** for theme/OS, Explorer, Taskbar, Search, Start, Notifications, Edge, Sudo, and the Widget service.
+- **Cascadia Code & Cascadia Mono Nerd Fonts** downloaded from the `microsoft/cascadia-code` GitHub release and registered per-user.
+- **5 script resources** beyond the WSL phases:
+  - `ElevationCheck` — re-launches winget elevated if not already admin.
+  - `darkTheme` — applies the built-in `dark.theme` to switch to dark mode.
+  - `InstallCascadiaCodeNerdFonts` — downloads and installs the Nerd Font variants of Cascadia Code/Mono.
+  - `SetCascadiaNfAsDefault` — sets `Cascadia Mono NF` as the default font face in Windows Terminal's `settings.json`.
+  - `ps7default` — sets PowerShell 7 as Windows Terminal's default profile.
+  - `ohMyPoshProfileSet` — adds `oh-my-posh init pwsh | Invoke-Expression` to `$PROFILE` and dot-sources it.
 
 ---
 
 ## Configuration details
 
-All resources are dscv3 (`$schema: .../DSC/main/schemas/2023/08/config/document.json`, `metadata.winget.processor.identifier: dscv3`). Every resource that touches HKLM or runs elevated tools depends on `ElevationCheck` to guarantee the rest of the document runs admin-side.
+All resources are dscv3 (`$schema: .../DSC/main/schemas/2023/08/config/document.json`, `metadata.winget.processor.identifier: dscv3`). Every resource that touches HKLM or runs elevated tools depends on `ElevationCheck`.
 
-Package resources use `Microsoft.WinGet/Package` with `source: winget` and `useLatest: true` (except `Python.Python.3.13` and `Microsoft.dotnet.SDK.10`, which are pinned by id).
+Package resources use `Microsoft.WinGet/Package` with `source: winget` and `useLatest: true` (except `Python.Python.3.13`, `Microsoft.dotnet.SDK.10`, and `OpenJS.NodeJS.LTS`, which are pinned by id).
 
 ### Phase resources (elevation + WSL)
 
 | Name | Type | What it does |
 |------|------|--------------|
-| `ElevationCheck` | `Microsoft.DSC.Transitional/WindowsPowerShellScript` | `testScript` checks `IsInRole(Administrator)`. If false, `setScript` re-invokes `winget configure --file <this> --accept-configuration-agreements --disable-interactivity --wait` via `Start-Process -Verb RunAs` and throws so the unelevated run terminates. |
+| `ElevationCheck` | `Microsoft.DSC.Transitional/WindowsPowerShellScript` | `testScript` checks `IsInRole(Administrator)`. If false, `setScript` re-invokes `winget configure --file <this> --accept-configuration-agreements --disable-interactivity --wait` via `Start-Process -Verb RunAs`, then throws so the unelevated session ends cleanly. |
 | `InstallWslComponents` | `Microsoft.DSC.Transitional/WindowsPowerShellScript` | `testScript` probes for the `vmcompute` service (presence ⇒ Virtual Machine Platform is active). `setScript` runs `wsl --install --no-distribution`. |
-| `RebootForVmp` | `Microsoft.DSC.Transitional/WindowsPowerShellScript` | Same `vmcompute` test. `setScript` registers `HKCU:\...\RunOnce\DSCConfigureResume` with the same `winget configure --file <this>` command, then `Restart-Computer -Force` + `Start-Sleep 30` + `throw`. The throw ensures DSC marks the run failed so it doesn't proceed past this resource before the reboot starts. |
+| `RebootForVmp` | `Microsoft.DSC.Transitional/WindowsPowerShellScript` | Same `vmcompute` test. `setScript` registers `HKCU:\...\RunOnce\DSCConfigureResume` with the same `winget configure --file <this> --accept-configuration-agreements` command, then `Restart-Computer -Force` and throws so DSC stops the current run. |
 | `InstallUbuntu` | `Microsoft.DSC.Transitional/WindowsPowerShellScript` | `testScript` checks for any subkey under `HKCU:\...\Lxss`. `setScript` runs `wsl --install -d Ubuntu --no-launch`. |
 
-All app and registry resources that need WSL present (i.e. effectively all of them) depend on `InstallUbuntu` so the OS work happens before the reboot — but the WSL install is still part of the same DSC document.
+All app resources that need WSL present depend on `InstallUbuntu` so the OS work happens before the reboot — but the WSL install is still part of the same `winget configure` invocation thanks to the RunOnce resume.
 
 ### Apps
 
@@ -95,24 +104,31 @@ All app and registry resources that need WSL present (i.e. effectively all of th
 | `PowerShell` | `Microsoft.PowerShell` | Direct dependency on `ElevationCheck`. |
 | `Git` | `Git.Git` | Depends on `ElevationCheck` + `InstallUbuntu`. |
 | `GitHubCLI` | `GitHub.Cli` | Depends on `Git` + `InstallUbuntu`. |
+| `GitHubCopilot` | `GitHub.Copilot` | Depends on `Git` + `InstallUbuntu`. |
 | `VSCode` | `Microsoft.VisualStudioCode` | |
 | `DotnetSdk` | `Microsoft.dotnet.SDK.10` | Pinned to v10. |
 | `Python` | `Python.Python.3.13` | Pinned to 3.13. |
 | `UV` | `astral-sh.uv` | |
-| `NodeJS` | `OpenJS.NodeJS` | |
-| `OhMyPosh` | `JanDeDobbeleer.OhMyPosh` | Marked Optional in the comments. |
+| `NodeJS` | `OpenJS.NodeJS.LTS` | Pinned to the LTS line (currently Node 24 LTS). |
+| `nvmForNode` | `CoreyButler.NVMforWindows` | Node version manager for Windows. |
+| `OhMyPosh` | `JanDeDobbeleer.OhMyPosh` | Marked Optional in the comments. Triggers `ohMyPoshProfileSet`. |
+| `winappCli` | `Microsoft.winappcli` | Windows Application CLI. |
 | `PowerToys` | `Microsoft.PowerToys` | Marked Optional. Followed by `PowerToysAOT` which disables AOT notifications via registry. |
 
 ### Theme and OS
 
-All entries below are `Microsoft.Windows/Registry`.
+Dark theme is applied via a `RunCommandOnSet` resource named `darkTheme` (not via registry):
+
+| Resource | Type | What it does |
+|----------|------|--------------|
+| `darkTheme` | `Microsoft.DSC.Transitional/RunCommandOnSet` | `Start-Process` on `C:\Windows\Resources\Themes\dark.theme`, sleeps 2 s, then stops `SystemSettings` so the Settings window doesn't linger. Depends on `PowerShell`. |
+
+The remaining theme/OS entries below are `Microsoft.Windows/Registry`.
 
 | Item | Hive\Key\Value | Value |
 |------|----------------|-------|
 | Sudo enabled (inline mode) | `HKLM\...\Sudo\Enabled` | DWord `3` |
 | Developer Mode | `HKLM\...\AppModelUnlock\AllowDevelopmentWithoutDevLicense` | DWord `1` |
-| Dark theme (apps) | `HKCU\...\Themes\Personalize\AppsUseLightTheme` | DWord `0` |
-| Dark theme (system chrome) | `HKCU\...\Themes\Personalize\SystemUsesLightTheme` | DWord `0` |
 | Long path support | `HKLM\...\FileSystem\LongPathsEnabled` | DWord `1` |
 | Remote Desktop on | `HKLM\...\Terminal Server\fDenyTSConnections` | DWord `0` |
 
@@ -124,7 +140,6 @@ All entries below are `Microsoft.Windows/Registry`.
 | Show hidden files | `HKCU\...\Advanced\Hidden` | DWord `1` |
 | Full path in titlebar | `HKCU\...\Advanced\FullPathAddress` | DWord `1` |
 | Open to This PC | `HKCU\...\Advanced\LaunchTo` | DWord `1` |
-| Account insights off | `HKCU\...\AccountNotifications\EnableAccountNotifications` | DWord `0` |
 | Frequent folders off | `HKCU\...\Advanced\ShowFrequent` | DWord `0` |
 | Frequent files off | `HKCU\...\Explorer\ShowRecent` | DWord `0` |
 | Recommended/cloud files off | `HKCU\...\Explorer\ShowCloudFilesInQuickAccess` | DWord `0` |
@@ -144,7 +159,9 @@ All entries below are `Microsoft.Windows/Registry`.
 | Item | Hive\Key\Value | Value |
 |------|----------------|-------|
 | Web search suggestions off | `HKCU\...\Policies\Explorer\DisableSearchBoxSuggestions` | DWord `1` |
+| Search highlights off | `HKCU\...\SearchSettings\IsDynamicSearchBoxEnabled` | DWord `0` |
 | Start menu recommendations off | `HKCU\...\Advanced\Start_Layout` | DWord `1` |
+| Toast notifications off (Do Not Disturb) | `HKCU\...\Notifications\Settings\NOC_GLOBAL_SETTING_TOASTS_ENABLED` | DWord `0` |
 
 ### Services and features
 
@@ -162,43 +179,64 @@ HKLM policies, applied via `Microsoft.Windows/Registry`:
 | New tab blank | `HKLM\SOFTWARE\Policies\Microsoft\Edge\NewTabPageLocation` | String `about:blank` |
 | First-run experience off | `HKLM\SOFTWARE\Policies\Microsoft\Edge\HideFirstRunExperience` | DWord `1` |
 
+### Fonts
+
+| Resource | Type | What it does |
+|----------|------|--------------|
+| `InstallCascadiaCodeNerdFonts` | `Microsoft.DSC.Transitional/RunCommandOnSet` | Downloads `CascadiaCode-2407.24.zip` from `microsoft/cascadia-code` GitHub Releases, extracts `CascadiaCodeNF.ttf` and `CascadiaMonoNF.ttf` to `%LOCALAPPDATA%\Microsoft\Windows\Fonts`, and registers each under `HKCU\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts`. Per-user install — no admin required for this step. Depends on `PowerShell`. |
+
 ### Windows Terminal
 
 | Resource | Type | What it does |
 |----------|------|--------------|
-| `ps7default` | `Microsoft.DSC.Transitional/RunCommandOnSet` | Invokes `pwsh.exe -NoProfile -NoLogo -Command ...` which reads `%LOCALAPPDATA%\Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.json`, finds the PowerShell 7 profile (`Windows.Terminal.PowershellCore` source), and sets it as `defaultProfile`. Depends on `PowerShell`. |
+| `SetCascadiaNfAsDefault` | `Microsoft.DSC.Transitional/RunCommandOnSet` | Locates Windows Terminal's `settings.json` (Store or unpackaged install), backs it up to `settings.json.bak`, and sets `profiles.defaults.font.face = "Cascadia Mono NF"`. Depends on `InstallCascadiaCodeNerdFonts`. |
+| `ps7default` | `Microsoft.DSC.Transitional/RunCommandOnSet` | Invokes `pwsh.exe -NoProfile -NoLogo -Command ...` which reads `%LOCALAPPDATA%\Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.json`, finds the PowerShell 7 profile, and sets it as `defaultProfile`. Depends on `PowerShell`. |
+
+### PowerShell profile
+
+| Resource | Type | What it does |
+|----------|------|--------------|
+| `ohMyPoshProfileSet` | `Microsoft.DSC.Transitional/RunCommandOnSet` | Creates `$PROFILE` if missing and appends `oh-my-posh init pwsh | Invoke-Expression` (idempotent — uses `Select-String` to check first), then dot-sources `$PROFILE`. Depends on `OhMyPosh`. |
 
 ---
 
 ## Customization
 
-- **Pick and choose packages.** Comment out any `Microsoft.WinGet/Package` block to skip that install — they have no `dependsOn` chain beyond `InstallUbuntu` (except `GitHubCLI`, which depends on `Git`).
-- **Pin or unpin versions.** Switch `id: Python.Python.3.13` (pinned) to `id: Python.Python.3` if you want to drift forward, or vice versa for the unpinned packages.
+- **Pick and choose packages.** Comment out any `Microsoft.WinGet/Package` block to skip that install — most have no `dependsOn` chain beyond `InstallUbuntu` (exceptions: `GitHubCLI` and `GitHubCopilot` depend on `Git`; `PowerToysAOT` depends on `PowerToys`; `ohMyPoshProfileSet` depends on `OhMyPosh`).
+- **Pin or unpin versions.** Switch `id: Python.Python.3.13` (pinned) to `id: Python.Python.3` if you want to drift forward, or switch `OpenJS.NodeJS.LTS` to `OpenJS.NodeJS` for current. Vice versa for the unpinned packages.
 - **Toggle registry values.** Most settings are `DWord: 0` or `DWord: 1`; flip the value to invert the behavior.
-- **Re-enable commented-out tweaks.** The file ships with three settings commented out — `HideDesktopIcons`, `TaskbarHideSearch`, and `SpotlightOff` — because they over-fire on some user setups. Uncomment if you want them.
+- **Re-enable commented-out tweaks.** `HideDesktopIcons` ships commented out (it over-fires on some user setups). Uncomment to enable.
 - **Change the WSL distro.** Edit the `wsl --install -d Ubuntu --no-launch` line inside the `InstallUbuntu` resource.
+- **Change the terminal font.** Edit `$fontFace = 'Cascadia Mono NF'` inside `SetCascadiaNfAsDefault`, or change the `$WantedFonts` array in `InstallCascadiaCodeNerdFonts` to install a different Cascadia variant.
+- **Skip the dark theme step.** Comment out the `darkTheme` resource if you prefer light mode (or want to set it manually).
 
 ## Design decisions
 
 | Decision | Rationale |
 |----------|-----------|
 | Single dscv3 document, no modules | Easier to reason about and easier to re-run. The whole flow is one `winget configure` call. |
-| `Microsoft.Windows/Registry` everywhere instead of `Microsoft.Windows.Developer/*` or `Microsoft.Windows.Settings/WindowsSettings` | Direct registry control is reliable across Windows 11 builds and easy to audit. The dedicated resources have been flaky on 23H2+. |
+| `Microsoft.Windows/Registry` everywhere instead of `Microsoft.Windows.Developer/*` or `Microsoft.Windows.Settings/WindowsSettings` | Direct registry control is reliable across Windows 11 builds and avoids dependencies on legacy resource modules. |
 | `Microsoft.DSC.Transitional/WindowsPowerShellScript` (not `PSDscResources/Script`) | The dscv3 transitional resource is the supported equivalent under the new processor. |
-| Self-relaunch elevated from `ElevationCheck` | Means a user can double-click into an unelevated shell and the DSC will UAC-prompt itself rather than failing. |
-| Reboot + RunOnce inside the DSC | The DSC owns the reboot and the resume, so the user only invokes `winget configure` once. The throw after `Restart-Computer -Force` is required because `Restart-Computer` returns immediately. |
-| `useLatest: true` on most packages | Cloud PC parity tracks "current" tools. Pinned ids (`Python.Python.3.13`, `Microsoft.dotnet.SDK.10`) are used where a major-version line matters. |
+| Self-relaunch elevated from `ElevationCheck` | A user can double-click into an unelevated shell and the DSC will UAC-prompt itself rather than failing. |
+| Reboot + RunOnce inside the DSC | The DSC owns the reboot and the resume, so the user only invokes `winget configure` once. The throw after `Restart-Computer -Force` is required because `Restart-Computer` returns immediately after signalling shutdown; without the throw DSC would treat the resource as succeeded and continue. |
+| `useLatest: true` on most packages | Cloud PC parity tracks "current" tools. Pinned ids (`Python.Python.3.13`, `Microsoft.dotnet.SDK.10`, `OpenJS.NodeJS.LTS`) are used where a major-version line matters. |
+| Dark theme via `dark.theme` file (not registry) | Applying the shipped `.theme` file flips both `AppsUseLightTheme` and `SystemUsesLightTheme` *and* applies the matching color scheme/cursors atomically, which the broadcast-message dance you'd otherwise need from a registry-only approach often misses. |
+| Per-user font install | Avoids requiring admin for the font step and keeps the font registration under `HKCU`, which is what modern Windows + Terminal expect. |
 | `RunCommandOnSet` to mutate `settings.json` | Windows Terminal's settings are JSON-based and not registry-mapped; a small pwsh fragment is the cleanest way. |
 
 ## Known caveats
 
 | Area | Caveat |
 |------|--------|
-| **`acceptAgreements` not on packages** | None of the `Microsoft.WinGet/Package` resources set `acceptAgreements: true`. The header comment compensates by passing `--accept-configuration-agreements` to the CLI invocation, but `--accept-package-agreements` is **not** in the documented command — first-time installs may prompt. Pass it explicitly if you want fully silent. |
+| **`acceptAgreements` not on packages** | None of the `Microsoft.WinGet/Package` resources set `acceptAgreements: true`. The header comment compensates by passing `--accept-configuration-agreements` on the command line. |
 | **WSL reboot** | `RebootForVmp` will hard-reboot the machine via `Restart-Computer -Force`. Save your work before running. The RunOnce key resumes the config on next login. |
 | **Ubuntu first-launch** | After `InstallUbuntu`, you still need to open Ubuntu from the Start menu once to create a UNIX user. Nothing inside the distro is configured by this flow. |
 | **`useLatest: true`** | Each run grabs the latest available version. Builds may differ between machines applying the config on different days. |
-| **HKLM registry keys** | Sudo, the Widget service policy, Edge policies, Remote Desktop, Long Paths, and Developer Mode all live in HKLM. The `ElevationCheck` gate guarantees the run is elevated; without it those would silently fail. |
+| **HKLM registry keys** | Sudo, the Widget service policy, Edge policies, Remote Desktop, Long Paths, and Developer Mode all live in HKLM. The `ElevationCheck` gate guarantees the run is elevated; without it these would silently fail. |
 | **PowerToys AOT path** | `HKCU\...\Notifications\Settings\PowerToys\Enabled` targets a specific registry path that may change across PowerToys versions. |
-| **Idempotency of WSL phases** | `InstallWslComponents` and `RebootForVmp` both test for `vmcompute`. Re-running after the reboot is a no-op for those resources. `InstallUbuntu` tests for any `Lxss` subkey, so adding a second distro is also a no-op. |
-| **Currently commented out** | `HideDesktopIcons`, `TaskbarHideSearch`, and `SpotlightOff` blocks live in the file but are commented out. If you re-enable them, expect the listed Explorer/Taskbar/Lock-screen behavior to flip. |
+| **Idempotency of WSL phases** | `InstallWslComponents` and `RebootForVmp` both test for `vmcompute`. Re-running after the reboot is a no-op for those resources. `InstallUbuntu` tests for any `Lxss` subkey, so it skips once any distro is registered. |
+| **Pinned font release** | `InstallCascadiaCodeNerdFonts` hard-codes Cascadia Code release `2407.24` from `microsoft/cascadia-code`. Bump `$Version` to pick up newer releases. |
+| **Windows Terminal settings overwrite** | `SetCascadiaNfAsDefault` and `ps7default` rewrite `settings.json` via `ConvertTo-Json`. `SetCascadiaNfAsDefault` writes a `settings.json.bak` first; `ps7default` does not. JSON comments will not survive the round-trip. |
+| **`ohMyPoshProfileSet` runs `. $PROFILE`** | Dot-sourcing the profile inside `pwsh -NoProfile` can surface errors from the user's existing profile during DSC apply. |
+| **`darkTheme` opens Settings briefly** | Applying `dark.theme` pops the Settings app open; the script kills it after 2 seconds. On slow machines the window may flash visibly. |
+| **Currently commented out** | The `HideDesktopIcons` block lives in the file but is commented out. Uncomment to hide desktop icons. |
