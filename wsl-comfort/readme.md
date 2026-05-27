@@ -1,6 +1,6 @@
 # Comfort Shell 😎
 
-A two-part installer that turns a fresh Windows + WSL machine into a cozy, opinionated-but-configurable shell: an Ubuntu distro running zsh + starship + modern CLI tools, surfaced through a themed Windows Terminal profile in a JetBrainsMono Nerd Font. Every component is opt-in — pick the parts you want and skip the rest.
+A two-part installer that turns a fresh Windows + WSL machine into a cozy, opinionated-but-configurable shell: an Ubuntu distro running zsh + starship + modern CLI tools, surfaced through a themed Windows Terminal profile in a Cascadia Code Nerd Font. Every component is opt-in — pick the parts you want and skip the rest.
 
 The Windows half (`install.ps1`) handles WSL, the distro, the font, and the terminal profile. The Linux half (`comfort-shell-bootstrap.sh`) runs inside the distro and does all the shell customization. They are designed to be runnable independently — the bootstrap is a standalone script you can scp onto any Ubuntu host and run by itself.
 
