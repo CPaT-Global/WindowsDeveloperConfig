@@ -27,21 +27,21 @@
 
 ## 🎯 Pick your setup
 
-Three different things live in this repo. Pick the one that matches what you actually want:
+Three developer setups live in this repo. Pick the one that matches what you want:
 
 | You want... | Go to |
 | --- | --- |
-| A full Windows dev workstation: tools, settings, WSL, the works. One command, may reboot. | [Windows Dev Config](#%EF%B8%8F-windows-dev-config) |
-| A nicer shell inside WSL (zsh/bash, Starship, modern CLI bits), plus a themed Windows Terminal profile. Interactive. | [WSL Comfort](#-wsl-comfort) |
-| Just one language toolchain (Node, Python, .NET, Rust, Go, Java, PHP, WinForms, WinUI 3). | [Workloads](#-single-language-workloads) |
+| A complete dev workstation: tools, OS settings, WSL, and terminal. One command, may reboot. | [Windows Dev Config](#%EF%B8%8F-windows-dev-config) |
+| A polished WSL shell: zsh/bash, Starship, CLI tools, and a themed terminal profile. Interactive or unattended. | [WSL Comfort](#-wsl-comfort) |
+| A single language toolchain: Node, Python, .NET, Rust, Go, Java, PHP, WinForms, or WinUI 3. One command each. | [Workloads](#-single-language-workloads) |
 
-Most of them use `winget configure`. If you've never used it before, turn it on once:
+Most of them use [`winget configure`](https://learn.microsoft.com/en-us/windows/package-manager/winget/configure). If you've never used it before, enable it once:
 
 ```powershell
 winget configure --enable
 ```
 
-If that fails or `winget configure` still acts like it doesn't exist, see [Troubleshooting](#-troubleshooting).
+If that fails or `winget configure` is still not recognized, see [Troubleshooting](#-troubleshooting).
 
 <br/>
 
@@ -49,20 +49,20 @@ If that fails or `winget configure` still acts like it doesn't exist, see [Troub
 
 *Turns a fresh Windows 11 box into a clean, distraction-free dev workstation in one shot.*
 
-A single DSC config that installs the usual dev tools, applies our standard Windows settings, and bootstraps WSL + Ubuntu through the required reboot. Non-interactive. Idempotent. Safe to re-run on an existing machine.
+A single [winget configuration](https://learn.microsoft.com/en-us/windows/package-manager/configuration/) file that installs dev tools, applies opinionated Windows settings, and bootstraps WSL + Ubuntu through the required reboot. Non-interactive. Idempotent. Safe to re-run on an existing machine.
 
 ```powershell
 winget configure -f .\windows-dev-config\dev-config.winget --accept-configuration-agreements --disable-interactivity
 ```
 
-> ⚠️ **May reboot.** Enabling WSL needs a Windows optional feature that wants a restart. A `RunOnce` task picks the configuration back up after you sign in, installs Ubuntu, and finishes the run. Expect one hard reboot plus about a minute of post-login work. Close other stuff first.
+> ⚠️ **May reboot.** Enabling WSL needs a Windows optional feature that requires a restart. A `RunOnce` task picks the configuration back up after you sign in, installs Ubuntu, and finishes the run. Expect one hard reboot plus about a minute of post-login work. Save your work first.
 
 <details>
 <summary><strong>What you get</strong></summary>
 
 - **Dev tools:** PowerShell 7, Git, GitHub CLI, VS Code, .NET SDK 10, Python 3.13 + uv, Node.js, Oh My Posh, and PowerToys.
-- **Terminal:** PowerShell 7 is the default, Oh My Posh enabled and Cascadia Mono NF set as the default font.
-- **Windows settings:** Dark theme, developer mode, long paths, File Explorer defaults, Start/Search cleanup, Edge policies, and the usual workstation hygiene.
+- **Terminal:** PowerShell 7 is the default profile, Oh My Posh is enabled, and Cascadia Mono NF is set as the default font.
+- **Windows settings:** Dark theme, developer mode, long paths, File Explorer defaults, Start/Search cleanup, Edge policies, and other workstation defaults.
 - **WSL:** WSL platform + Ubuntu, including the reboot and the `RunOnce` resume step.
 
 </details>
@@ -73,9 +73,9 @@ Full details: [`windows-dev-config/README.md`](./windows-dev-config/README.md).
 
 ## 🐧 WSL Comfort
 
-*aka Comfort Shell. An interactive setup for a nicer Windows + WSL shell environment.*
+*Also known as Comfort Shell. An interactive setup for a polished Windows + WSL shell environment.*
 
-WSL Comfort is a different beast. Beyond interactive and non-interactive, you can actually pick and choose options. The Windows side handles WSL, the distro, the JetBrainsMono Nerd Font, and a themed Windows Terminal profile. The Linux side runs inside the distro and configures the shell itself.
+WSL Comfort stands apart. It supports both interactive and non-interactive modes, and lets you pick and choose individual components. The Windows side handles WSL, the distro, the JetBrainsMono Nerd Font, and a themed Windows Terminal profile. The Linux side runs inside the distro and configures the shell itself.
 
 ```powershell
 .\wsl-comfort\install.ps1
@@ -102,7 +102,7 @@ Full details: [`wsl-comfort/readme.md`](./wsl-comfort/readme.md).
 
 ## 🧪 Single-language workloads
 
-Just want one toolchain? Pick a row. Each flow ships a `configuration.winget` file plus a matching `install.ps1` shim that applies it and refreshes PATH in the current session.
+Just want one toolchain? Pick a row. Each workload ships a `configuration.winget` file plus a matching `install.ps1` shim that applies it and refreshes PATH in the current session.
 
 | Workload   | Installs                                                                | Run                                                                                                                            |
 | ---------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
@@ -112,7 +112,7 @@ Just want one toolchain? Pick a row. Each flow ships a `configuration.winget` fi
 | Go         | Go (rolling)                                                            | `winget configure -f .\Workloads\go\configuration.winget --accept-configuration-agreements --disable-interactivity`         |
 | Java       | Microsoft Build of OpenJDK 21 LTS                                       | `winget configure -f .\Workloads\java\configuration.winget --accept-configuration-agreements --disable-interactivity`       |
 | Rust       | Rust stable via rustup                                                  | `winget configure -f .\Workloads\rust\configuration.winget --accept-configuration-agreements --disable-interactivity`       |
-| Python     | CPython 3.13 + uv                                                       | `winget configure -f .\Workloads\python\configuration.winget --accept-configuration-agreements --disable-interactivity`     |
+| Python     | Python 3.13 + uv                                                       | `winget configure -f .\Workloads\python\configuration.winget --accept-configuration-agreements --disable-interactivity`     |
 | WinForms   | .NET SDK 10 + Windows Forms desktop workload                            | `winget configure -f .\Workloads\winforms\configuration.winget --accept-configuration-agreements --disable-interactivity`   |
 | WinUI 3    | .NET SDK 10 + Visual Studio Community + Windows App SDK / WinUI 3 + WinAppCLI | `winget configure -f .\Workloads\winui\configuration.winget --accept-configuration-agreements --disable-interactivity` |
 
@@ -126,9 +126,9 @@ Want the PATH refresh in your current shell? Use the matching shim instead of ca
 
 <br/>
 
-## 🎨 Command Palette extension coming soon
+## 🎨 Command Palette extension
 
-A [PowerToys Command Palette](https://learn.microsoft.com/en-us/windows/powertoys/command-palette/overview) extension lives under [`src/future/cmdpal/`](./src/future/cmdpal/). It reads the same flow list as the rest of the repo and surfaces every flow as a launchable entry, so you don't have to remember which `configuration.winget` to point `winget` at.
+A [PowerToys Command Palette](https://learn.microsoft.com/en-us/windows/powertoys/command-palette/overview) extension lives under [`src/future/cmdpal/`](./src/future/cmdpal/). It reads the same setup list as the rest of the repo and surfaces every setup as a launchable entry, so you don't have to remember which `configuration.winget` file to run.
 
 See [`src/future/cmdpal/README.md`](./src/future/cmdpal/README.md) for build and install instructions.
 
@@ -139,12 +139,12 @@ See [`src/future/cmdpal/README.md`](./src/future/cmdpal/README.md) for build and
 <details>
 <summary><strong>"Unrecognized command: configure"</strong></summary>
 
-Run `winget configure --enable`. If `winget configure` still acts like it doesn't exist after that, [`Workloads/_common/assert-winget-configure.ps1`](./Workloads/_common/assert-winget-configure.ps1) tells you whether App Installer is too old, policy has disabled configuration, or something else needs fixing.
+Run `winget configure --enable`. If `winget configure` is still not recognized after that, [`Workloads/_common/assert-winget-configure.ps1`](./Workloads/_common/assert-winget-configure.ps1) tells you whether App Installer is too old, policy has disabled configuration, or something else needs fixing.
 
 </details>
 
 <details>
-<summary><strong>A workload says it succeeded but <code>python</code> / <code>node</code> / whatever isn't on PATH</strong></summary>
+<summary><strong>A workload says it succeeded but <code>python</code> / <code>node</code> / the tool isn't on PATH</strong></summary>
 
 Open a new terminal, or run the matching `install.ps1` shim to refresh PATH in the current session.
 
@@ -158,7 +158,7 @@ It registered a `RunOnce` entry, so `winget configure` resumes once you sign bac
 </details>
 
 <details>
-<summary><strong>WSL is missing when I tried to run the Comfort Shell bootstrap directly</strong></summary>
+<summary><strong>Comfort Shell bootstrap fails because WSL is missing</strong></summary>
 
 Run `.\wsl-comfort\install.ps1` on the Windows side instead. It installs WSL first.
 
@@ -168,14 +168,14 @@ Run `.\wsl-comfort\install.ps1` on the Windows side instead. It installs WSL fir
 
 ## 🐛 Reporting issues
 
-Hit a bug, a stale doc, or a flow that fails on your machine? Open an issue at [github.com/microsoft/WindowsDeveloperConfig/issues](https://github.com/microsoft/WindowsDeveloperConfig/issues). Include your Windows build (`winver`), the exact command you ran, and the failing output. That makes everything faster.
+Hit a bug, a stale doc, or a setup that fails on your machine? Open an issue at [github.com/microsoft/WindowsDeveloperConfig/issues](https://github.com/microsoft/WindowsDeveloperConfig/issues). Include your Windows build (`winver`), the exact command you ran, and the failing output. This helps us triage faster.
 
 <br/>
 
 ## ❤️ Contributing
 
-Contributions of every shape are welcome: bug reports, doc fixes, new workloads, voice-and-tone tweaks. Start with [`CONTRIBUTING.md`](./CONTRIBUTING.md), then read [`src/docs/development.md`](./src/docs/development.md) for the CI matrix, the "how to add a language" walkthrough, and how the sign pipeline works.
+Contributions of all kinds are welcome: bug reports, doc fixes, new workloads, voice-and-tone tweaks. Start with [`CONTRIBUTING.md`](./CONTRIBUTING.md), then read [`src/docs/development.md`](./src/docs/development.md) for the CI matrix, the "how to add a language" walkthrough, and how the sign pipeline works.
 
-> **Heads up on the repo layout:** the [`src/`](./src/) tree is the source of truth. The top-level `windows-dev-config/`, `Workloads/`, and `wsl-comfort/` folders are Authenticode-signed release copies regenerated by the sign pipeline, so please don't edit them directly. Full details in [`src/docs/development.md`](./src/docs/development.md#repo-layout-signed-vs-source).
+> **Note on the repo layout:** the [`src/`](./src/) tree is the source of truth. The top-level `windows-dev-config/`, `Workloads/`, and `wsl-comfort/` folders are Authenticode-signed release copies regenerated by the sign pipeline, so please don't edit them directly. Full details in [`src/docs/development.md`](./src/docs/development.md#repo-layout-signed-vs-source).
 
 The single source of truth for every flow (paths, build/run commands, ids, language metadata) is [`src/manifest.yml`](./src/manifest.yml). The Command Palette extension, the CI harness, and the per-flow shims all read from it, so keep it in sync when you add or rename a flow.
