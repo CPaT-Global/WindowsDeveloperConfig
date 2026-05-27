@@ -25,7 +25,7 @@
 
 ---
 
-Setting up a Windows dev box by hand is slow, fiddly, and never quite the same twice. This repo replaces all that with a handful of declarative, CI-tested configs that take a fresh machine to a working dev environment in one command — repeatably, on any box.
+Go from a fresh Windows install to a fully configured dev box in one command. These declarative, CI-tested configs set up your tools, settings, and shells the same way every time — so any machine can be your machine in minutes.
 
 ## 🎯 Pick your setup
 
