@@ -967,3 +967,51 @@ resources:
       Write-Host "Backup saved at $settingsPath.bak"
   metadata:
     description: Create Github Copilot Profile
+
+# =============================================================================
+# Install Win Skills
+# =============================================================================
+- type: Microsoft.DSC.Transitional/PowerShellScript
+  name: InstallWinUITemplates
+  dependsOn:
+    - DotnetSdk
+  properties:
+    getScript: |
+      $installed = [bool](dotnet new list 2>&1 | Select-String -Pattern 'winui' -CaseSensitive:$false)
+      return @{ installed = $installed }
+    testScript: |
+      return [bool](dotnet new list 2>&1 | Select-String -Pattern 'winui' -CaseSensitive:$false)
+    setScript: |
+      dotnet new install Microsoft.WindowsAppSDK.WinUI.CSharp.Templates
+  metadata:
+    description: Install WinUI dotnet new templates
+
+- type: Microsoft.DSC.Transitional/PowerShellScript
+  name: AddWinSkillsMarketplace
+  dependsOn:
+    - GitHubCopilot
+  properties:
+    getScript: |
+      $present = [bool](copilot plugin marketplace list 2>&1 | Select-String 'win-dev-skills')
+      return @{ present = $present }
+    testScript: |
+      return [bool](copilot plugin marketplace list 2>&1 | Select-String 'win-dev-skills')
+    setScript: |
+      copilot plugin marketplace add microsoft/win-dev-skills
+  metadata:
+    description: Add win-dev-skills to the Copilot plugin marketplace
+
+- type: Microsoft.DSC.Transitional/PowerShellScript
+  name: InstallWinUIPlugin
+  dependsOn:
+    - AddWinSkillsMarketplace
+  properties:
+    getScript: |
+      $installed = [bool](copilot plugin list 2>&1 | Select-String 'winui')
+      return @{ installed = $installed }
+    testScript: |
+      return [bool](copilot plugin list 2>&1 | Select-String 'winui')
+    setScript: |
+      copilot plugin install winui@win-dev-skills
+  metadata:
+    description: Install the WinUI Copilot plugin from win-dev-skills
