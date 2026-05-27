@@ -112,7 +112,7 @@ Just want one toolchain? Pick a row. Each workload ships a `configuration.winget
 | PHP        | PHP 8.5                                                                 | `winget configure -f .\Workloads\php\configuration.winget --accept-configuration-agreements --disable-interactivity`        |
 | .NET       | .NET SDK 10                                                             | `winget configure -f .\Workloads\dotnet\configuration.winget --accept-configuration-agreements --disable-interactivity`     |
 | Go         | Go (rolling)                                                            | `winget configure -f .\Workloads\go\configuration.winget --accept-configuration-agreements --disable-interactivity`         |
-| Java       | Microsoft Build of OpenJDK 21 LTS                                       | `winget configure -f .\Workloads\java\configuration.winget --accept-configuration-agreements --disable-interactivity`       |
+| Java       | Microsoft Build of OpenJDK 25 LTS                                       | `winget configure -f .\Workloads\java\configuration.winget --accept-configuration-agreements --disable-interactivity`       |
 | Rust       | Rust stable via rustup                                                  | `winget configure -f .\Workloads\rust\configuration.winget --accept-configuration-agreements --disable-interactivity`       |
 | Python     | Python 3.13 + uv                                                       | `winget configure -f .\Workloads\python\configuration.winget --accept-configuration-agreements --disable-interactivity`     |
 | WinForms   | .NET SDK 10 + Windows Forms desktop workload                            | `winget configure -f .\Workloads\winforms\configuration.winget --accept-configuration-agreements --disable-interactivity`   |
@@ -128,7 +128,7 @@ Want the PATH refresh in your current shell? Use the matching shim instead of ca
 
 <br/>
 
-## 🎨 Command Palette extension
+## 🎨 Command Palette extension (coming soon)
 
 A [PowerToys Command Palette](https://learn.microsoft.com/windows/powertoys/command-palette/overview) extension lives under [`src/future/cmdpal/`](./src/future/cmdpal/). It reads the same flow list as the rest of the repo and surfaces every flow as a launchable entry, so you don't have to remember which `configuration.winget` to point `winget` at.
 

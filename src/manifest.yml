@@ -175,7 +175,7 @@ flows:
 
   - id: java
     name: Java
-    description: Microsoft Build of OpenJDK 21 LTS (foundation for the web-api-java scenario)
+    description: Microsoft Build of OpenJDK 25 LTS (foundation for the web-api-java scenario)
     category: languages
     tags: [java, jdk, openjdk, jvm]
     icon: ☕

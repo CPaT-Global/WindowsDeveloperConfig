@@ -12,7 +12,7 @@ resources:
   - name: OpenJdk
     type: Microsoft.WinGet/Package
     properties:
-      id: Microsoft.OpenJDK.21
+      id: Microsoft.OpenJDK.25
       source: winget
       acceptAgreements: true
     metadata:

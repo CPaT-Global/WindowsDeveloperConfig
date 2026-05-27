@@ -5,7 +5,7 @@
 .DESCRIPTION
   This script is a thin CI/dev shim. The core artifact for the Java flow is
   `configuration.winget` in this directory - a winget DSC configuration that
-  declaratively installs the Microsoft Build of OpenJDK 21 (LTS) via winget.
+  declaratively installs the Microsoft Build of OpenJDK 25 (LTS) via winget.
 
   The shim exists only to:
     * apply the DSC config with retry (hosted-runner networks are flaky),
