@@ -20,19 +20,20 @@ resources:
       winget:
         securityContext: elevated
 
-  - name: Microsoft.Windows.Developer.Module
-    type: Microsoft.DSC.Transitional/PowerShellScript
+  - type: Microsoft.DSC.Transitional/RunCommandOnSet
+    name: Microsoft.Windows.Developer.Module
     dependsOn:
       - PowerShell7
+    properties:
+      executable: pwsh
+      arguments:
+        "0": -NoProfile
+        "1": -NoLogo
+        "2": -Command
+        "3": if (-not (Get-Module -ListAvailable -Name Microsoft.Windows.Developer)) { Install-Module -Name Microsoft.Windows.Developer -Confirm:$False -Force -AllowPrerelease -AllowClobber }
+        treatAsArray: true
     metadata:
       description: Ensure Microsoft.Windows.Developer module is installed
-    properties:
-      getScript: |
-        return @{ installed = [bool](Get-Module -ListAvailable -Name Microsoft.Windows.Developer) }
-      testScript: |
-        return [bool](Get-Module -ListAvailable -Name Microsoft.Windows.Developer)
-      setScript: |
-        Install-Module -Name Microsoft.Windows.Developer -Confirm:$False -Force -AllowPrerelease -AllowClobber
 
   - type: Microsoft.Windows.Developer/OsVersion
     name: OsVersion
@@ -44,19 +45,20 @@ resources:
       description: Verify min OS version (Windows 10 1809+)
       allowPrerelease: true
 
-  - name: Microsoft.Windows.Settings.Module
-    type: Microsoft.DSC.Transitional/PowerShellScript
+  - type: Microsoft.DSC.Transitional/RunCommandOnSet
+    name: Microsoft.Windows.Settings.Module
     dependsOn:
       - PowerShell7
+    properties:
+      executable: pwsh
+      arguments:
+        "0": -NoProfile
+        "1": -NoLogo
+        "2": -Command
+        "3": if (-not (Get-Module -ListAvailable -Name Microsoft.Windows.Settings)) { Install-Module -Name Microsoft.Windows.Settings -Confirm:$False -Force -AllowPrerelease -AllowClobber }
+        treatAsArray: true
     metadata:
       description: Ensure Microsoft.Windows.Settings module is installed
-    properties:
-      getScript: |
-        return @{ installed = [bool](Get-Module -ListAvailable -Name Microsoft.Windows.Settings) }
-      testScript: |
-        return [bool](Get-Module -ListAvailable -Name Microsoft.Windows.Settings)
-      setScript: |
-        Install-Module -Name Microsoft.Windows.Settings -Confirm:$False -Force -AllowPrerelease -AllowClobber
 
   - type: Microsoft.Windows.Settings/WindowsSettings
     name: DeveloperMode
@@ -92,36 +94,32 @@ resources:
       winget:
         securityContext: elevated
 
-  - name: VSWorkloads
-    type: Microsoft.DSC.Transitional/PowerShellScript
+  - type: Microsoft.DSC.Transitional/RunCommandOnSet
+    name: VSWorkloads
     dependsOn:
       - VisualStudioCommunity
       - PowerShell7
+    properties:
+      executable: pwsh
+      arguments:
+        "0": -NoProfile
+        "1": -NoLogo
+        "2": -Command
+        "3": >-
+          $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe';
+          if (-not (Test-Path $vswhere)) { throw 'vswhere.exe not found.' };
+          $setup = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\setup.exe';
+          if (-not (Test-Path $setup)) { throw 'Visual Studio setup.exe not found.' };
+          $installPath = & $vswhere -latest -products * -property installationPath;
+          if (-not $installPath) { throw 'Visual Studio installation path could not be determined.' };
+          & $setup modify --installPath $installPath
+          --channelId VisualStudio.18.Release
+          --productId Microsoft.VisualStudio.Product.Community
+          --add Microsoft.VisualStudio.Workload.ManagedDesktop
+          --quiet --norestart --wait;
+          if ($LASTEXITCODE -ne 0) { throw "Visual Studio workload installation failed with exit code $LASTEXITCODE." }
+        treatAsArray: true
     metadata:
       description: Install required VS workloads for WinForms development
       winget:
         securityContext: elevated
-    properties:
-      getScript: |
-        $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
-        if (-not (Test-Path $vswhere)) { return @{ installed = $false } }
-        $path = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Workload.ManagedDesktop -property installationPath
-        return @{ installed = -not [string]::IsNullOrEmpty($path) }
-      testScript: |
-        $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
-        if (-not (Test-Path $vswhere)) { return $false }
-        $path = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Workload.ManagedDesktop -property installationPath
-        return -not [string]::IsNullOrEmpty($path)
-      setScript: |
-        $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
-        if (-not (Test-Path $vswhere)) { throw 'vswhere.exe not found.' }
-        $setup = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\setup.exe'
-        if (-not (Test-Path $setup)) { throw 'Visual Studio setup.exe not found.' }
-        $installPath = & $vswhere -latest -products * -property installationPath
-        if (-not $installPath) { throw 'Visual Studio installation path could not be determined.' }
-        & $setup modify --installPath $installPath `
-            --channelId VisualStudio.18.Release `
-            --productId Microsoft.VisualStudio.Product.Community `
-            --add Microsoft.VisualStudio.Workload.ManagedDesktop `
-            --quiet --norestart --wait
-        if ($LASTEXITCODE -ne 0) { throw "Visual Studio workload installation failed with exit code $LASTEXITCODE." }

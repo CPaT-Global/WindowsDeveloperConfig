@@ -21,26 +21,23 @@ resources:
         securityContext: elevated
 
   - name: InstallTypeScript
-    type: Microsoft.DSC.Transitional/WindowsPowerShellScript
+    type: Microsoft.DSC.Transitional/RunCommandOnSet
     dependsOn:
       - Node
     metadata:
       description: Install the TypeScript compiler globally via npm
     properties:
-      getScript: |
-        $machine = [Environment]::GetEnvironmentVariable('Path','Machine')
-        $user = [Environment]::GetEnvironmentVariable('Path','User')
-        $env:Path = (($machine, $user) | Where-Object { $_ }) -join ';'
-        return @{ installed = [bool](Get-Command tsc -ErrorAction SilentlyContinue) }
-      testScript: |
-        $machine = [Environment]::GetEnvironmentVariable('Path','Machine')
-        $user = [Environment]::GetEnvironmentVariable('Path','User')
-        $env:Path = (($machine, $user) | Where-Object { $_ }) -join ';'
-        return [bool](Get-Command tsc -ErrorAction SilentlyContinue)
-      setScript: |
-        $machine = [Environment]::GetEnvironmentVariable('Path','Machine')
-        $user = [Environment]::GetEnvironmentVariable('Path','User')
-        $env:Path = (($machine, $user) | Where-Object { $_ }) -join ';'
-        if (-not (Get-Command npm -ErrorAction SilentlyContinue)) { throw 'npm not found on PATH after Node install; cannot install typescript.' }
-        & npm install --global --no-fund --no-audit typescript
-        if ($LASTEXITCODE -ne 0) { throw "npm install --global typescript failed with exit code $LASTEXITCODE" }
+      executable: powershell
+      arguments:
+        "0": -NoProfile
+        "1": -NoLogo
+        "2": -Command
+        "3": >-
+          $machine = [Environment]::GetEnvironmentVariable('Path','Machine');
+          $user = [Environment]::GetEnvironmentVariable('Path','User');
+          $env:Path = (($machine, $user) | Where-Object { $_ }) -join ';';
+          if (Get-Command tsc -ErrorAction SilentlyContinue) { exit 0 };
+          if (-not (Get-Command npm -ErrorAction SilentlyContinue)) { throw 'npm not found on PATH after Node install; cannot install typescript.' };
+          & npm install --global --no-fund --no-audit typescript;
+          if ($LASTEXITCODE -ne 0) { throw "npm install --global typescript failed with exit code $LASTEXITCODE" }
+        treatAsArray: true

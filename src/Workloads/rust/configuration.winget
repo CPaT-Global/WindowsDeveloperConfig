@@ -20,30 +20,24 @@ resources:
       winget:
         securityContext: elevated
 
-  - name: InstallStableToolchain
-    type: Microsoft.DSC.Transitional/WindowsPowerShellScript
+  - type: Microsoft.DSC.Transitional/RunCommandOnSet
+    name: InstallStableToolchain
     dependsOn:
       - Rustup
+    properties:
+      executable: powershell
+      arguments:
+        "0": -NoProfile
+        "1": -NoLogo
+        "2": -Command
+        "3": >-
+          $machine = [Environment]::GetEnvironmentVariable('Path','Machine');
+          $user = [Environment]::GetEnvironmentVariable('Path','User');
+          $env:Path = (($machine, $user) | Where-Object { $_ }) -join ';';
+          if (-not (Get-Command rustup -ErrorAction SilentlyContinue)) { throw 'rustup not found on PATH after Rustup install; cannot install toolchain.' };
+          & rustup default stable;
+          if ($LASTEXITCODE -ne 0) { throw "rustup default stable failed with exit code $LASTEXITCODE" }
+        treatAsArray: true
     metadata:
       description: Install and default the stable Rust toolchain via rustup
-    properties:
-      getScript: |
-        $machine = [Environment]::GetEnvironmentVariable('Path','Machine')
-        $user = [Environment]::GetEnvironmentVariable('Path','User')
-        $env:Path = (($machine, $user) | Where-Object { $_ }) -join ';'
-        $hasStable = [bool](Get-Command rustup -EA SilentlyContinue -and (& rustup toolchain list 2>$null | Where-Object { $_ -like 'stable*' }))
-        return @{ stable = $hasStable }
-      testScript: |
-        $machine = [Environment]::GetEnvironmentVariable('Path','Machine')
-        $user = [Environment]::GetEnvironmentVariable('Path','User')
-        $env:Path = (($machine, $user) | Where-Object { $_ }) -join ';'
-        if (-not (Get-Command rustup -ErrorAction SilentlyContinue)) { return $false }
-        return [bool](& rustup toolchain list 2>$null | Where-Object { $_ -like 'stable*' })
-      setScript: |
-        $machine = [Environment]::GetEnvironmentVariable('Path','Machine')
-        $user = [Environment]::GetEnvironmentVariable('Path','User')
-        $env:Path = (($machine, $user) | Where-Object { $_ }) -join ';'
-        if (-not (Get-Command rustup -ErrorAction SilentlyContinue)) { throw 'rustup not found on PATH after Rustup install; cannot install toolchain.' }
-        & rustup default stable
-        if ($LASTEXITCODE -ne 0) { throw "rustup default stable failed with exit code $LASTEXITCODE" }
 
