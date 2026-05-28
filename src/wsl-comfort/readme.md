@@ -1,6 +1,6 @@
 # WSL Comfort Shell 😎
 
-A two-part installer that turns a fresh Windows + WSL machine into a cozy, opinionated-but-configurable shell: an Ubuntu distro running zsh + starship + modern CLI tools, surfaced through a themed Windows Terminal profile in a JetBrainsMono Nerd Font. Every component is opt-in — pick the parts you want and skip the rest.
+A two-part installer that turns a fresh Windows + WSL machine into a cozy, opinionated-but-configurable shell: an Ubuntu distro running zsh + starship + modern CLI tools, surfaced through a themed Windows Terminal profile in a Cascadia Code Mono Nerd Font. Every component is opt-in — pick the parts you want and skip the rest.
 
 The Windows half (`install.ps1`) handles WSL, the distro, the font, and the terminal profile. The Linux half (`comfort-shell-bootstrap.sh`) runs inside the distro and does all the shell customization. They are designed to be runnable independently — the bootstrap is a standalone script you can scp onto any Ubuntu host and run by itself.
 
@@ -35,7 +35,6 @@ The Windows half (`install.ps1`) handles WSL, the distro, the font, and the term
 ## Prerequisites
 
 - Windows 11 with **Windows Terminal** (`wt.exe`) installed and on PATH. The installer hard-fails if it can't find `wt.exe`.
-- `winget` available (used only for the Nerd Font; the rest of the flow tolerates its absence).
 - Internet access for the WSL distro download, Homebrew, starship, and apt.
 - The bootstrap requires Ubuntu (any supported LTS). Other distros are rejected at preflight.
 
@@ -87,7 +86,7 @@ Picks `Ubuntu` (latest LTS) as the distro and forwards `--non-interactive` to th
 - **Clipboard / `open` shims** in `~/bin`: `pbcopy`, `pbpaste`, `open`, `xdg-open` — bridged to `clip.exe`, PowerShell `Get-Clipboard`, and `cmd /c start`.
 - **Managed dotfile blocks** in `~/.zprofile` + `~/.zshrc` (or `~/.profile` + `~/.bashrc`) for PATH, brew shellenv, prompt init, aliases, and (zsh) keybindings.
 - **Git defaults**: `init.defaultBranch=main`, `pull.rebase=false`, `core.autocrlf=input`.
-- **JetBrainsMono Nerd Font** via winget.
+- **Cascadia Code Nerd Fonts** both mono and not.
 - **A Windows Terminal profile fragment** named `Comfort Shell - <distro>`, with a custom Catppuccin-ish dark scheme, the sunglasses icon, and `wsl.exe -d <distro>` as the command line.
 
 ---
@@ -112,7 +111,7 @@ The script runs five labeled steps and updates the console title with the curren
 | 1. Ensuring WSL platform | `wsl.exe --status` probe. If WSL is missing, runs `wsl.exe --install --no-distribution` and exits via reboot. | Registers a RunOnce auto-resume so the script picks up where it left off after the reboot. |
 | 2. Choosing Ubuntu distro | Lists installed `Ubuntu*` distros from `wsl -l -q`. If none, offers the 4 supported LTS lines. | `Install-NewDistro` retries up to 3 times (5s → 15s backoff) and gives actionable hints on failure (DNS, proxy, VPN). |
 | 3. Running Comfort Shell bootstrap | Stages `comfort-shell-bootstrap.sh` to `%TEMP%`, copies it into the distro's `$HOME`, strips CRLFs, makes it executable, runs it. | Uses `Invoke-NativeConsole` so the child sees a real TTY (needed for `/dev/tty` prompts in the bootstrap). |
-| 4. Installing JetBrainsMono Nerd Font | `winget install --id DEVCOM.JetBrainsMonoNerdFont --silent`. | Non-fatal: a missing winget or a "already installed" exit code is logged and skipped. |
+| 4. Installing Cascadia Code Nerd Fonts | Downloads fonts from GitHub release; extracts and registers them. | Detects "already installed" and skips if so. |
 | 5. Installing Windows Terminal profile | Writes a JSON fragment under `%LOCALAPPDATA%\Microsoft\Windows Terminal\Fragments\ComfortShell\comfort-shell-<slug>.fragment.json`. | Deterministic per-distro GUID (MD5 of `comfort-shell:<distro>`) so re-runs update in place and multiple distros coexist. Touches `settings.json` mtime to nudge WT's hot-reload. |
 
 ### Parameters
