@@ -18,8 +18,10 @@
     hello-world probe that doesn't emit or consume any .pri resources,
     skipping PRI work is safe and keeps the command-line build green.
 
-    Program.cs references `Microsoft.UI.Xaml.Application` to prove the WinUI
-    projection actually loads before printing the expected stdout.
+    Program.cs boots a minimal WinUI 3 Application that opens a Window and
+    shows a ContentDialog carrying `WinUI: <Application.Name>`. Touching
+    `Microsoft.UI.Xaml.Application` still proves the WinUI projection actually
+    loads before any UI appears.
   -->
 
   <PropertyGroup>
