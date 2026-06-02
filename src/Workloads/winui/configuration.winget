@@ -73,6 +73,17 @@ resources:
         securityContext: elevated
 
   - type: Microsoft.WinGet/Package
+    name: DotNetSdk
+    properties:
+      id: Microsoft.DotNet.SDK.10
+      source: winget
+      acceptAgreements: true
+    metadata:
+      description: Install .NET SDK 10
+      winget:
+        securityContext: elevated
+
+  - type: Microsoft.WinGet/Package
     name: VisualStudio
     properties:
       id: Microsoft.VisualStudio.Community
