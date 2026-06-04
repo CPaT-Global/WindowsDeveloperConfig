@@ -33,7 +33,7 @@ Check "code --version succeeds"                   { (code --version 2>$null) -ne
 Check "dotnet --version starts with 10."          { (dotnet --version 2>$null) -match '^10\.' }
 
 # Python & uv
-Check "python --version starts with 3.13"         { (python --version 2>$null) -match '3\.13\.' }
+Check "python --version starts with 3.14"         { (python --version 2>$null) -match '3\.14\.' }
 Check "uv --version succeeds"                     { (uv --version 2>$null) -ne $null }
 
 # Node.js / npm / nvm
