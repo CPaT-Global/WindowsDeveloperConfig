@@ -77,7 +77,7 @@ winget search <keyword>
 winget show <Publisher.Product>
 ```
 
-Per AGENTS.md §6, always use a **versioned** id (e.g. `Python.Python.3.13`),
+Per AGENTS.md §6, always use a **versioned** id (e.g. `Python.Python.3.14`),
 never a bare id (e.g. `Python.Python`).
 
 ---

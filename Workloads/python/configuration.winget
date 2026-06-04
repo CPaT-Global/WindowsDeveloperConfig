@@ -12,7 +12,7 @@ resources:
   - name: Python
     type: Microsoft.WinGet/Package
     properties:
-      id: Python.Python.3.13
+      id: Python.Python.3.14
       source: winget
       acceptAgreements: true
     metadata:

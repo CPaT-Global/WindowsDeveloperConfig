@@ -57,7 +57,7 @@ winget configure -f .\windows-dev-config\dev-config.winget --accept-configuratio
 <details>
 <summary><strong>What you get</strong></summary>
 
-- **Dev tools:** PowerShell 7, Git, GitHub CLI, VS Code, .NET SDK 10, Python 3.13 + uv, Node.js, Oh My Posh, and PowerToys.
+- **Dev tools:** PowerShell 7, Git, GitHub CLI, VS Code, .NET SDK 10, Python 3.14 + uv, Node.js, Oh My Posh, and PowerToys.
 - **Terminal:** PowerShell 7 is the default profile, Oh My Posh is enabled, and Cascadia Mono NF is set as the default font.
 - **Windows settings:** Dark theme, developer mode, long paths, File Explorer defaults, Start/Search cleanup, Edge policies, and other workstation defaults.
 - **WSL:** WSL platform + Ubuntu, including the reboot and the `RunOnce` resume step.
@@ -109,7 +109,7 @@ Just want one toolchain? Pick a row. Each workload ships a `configuration.winget
 | Go         | Go (rolling)                                                            | `winget configure -f .\Workloads\go\configuration.winget --accept-configuration-agreements --disable-interactivity`         |
 | Java       | Microsoft Build of OpenJDK 25 LTS                                       | `winget configure -f .\Workloads\java\configuration.winget --accept-configuration-agreements --disable-interactivity`       |
 | Rust       | Rust stable via rustup                                                  | `winget configure -f .\Workloads\rust\configuration.winget --accept-configuration-agreements --disable-interactivity`       |
-| Python     | Python 3.13 + uv                                                       | `winget configure -f .\Workloads\python\configuration.winget --accept-configuration-agreements --disable-interactivity`     |
+| Python     | Python 3.14 + uv                                                       | `winget configure -f .\Workloads\python\configuration.winget --accept-configuration-agreements --disable-interactivity`     |
 | WinForms   | .NET SDK 10 + Windows Forms desktop workload                            | `winget configure -f .\Workloads\winforms\configuration.winget --accept-configuration-agreements --disable-interactivity`   |
 | WinUI 3    | .NET SDK 10 + Visual Studio Community + Windows App SDK / WinUI 3 + WinAppCLI | `winget configure -f .\Workloads\winui\configuration.winget --accept-configuration-agreements --disable-interactivity` |
 

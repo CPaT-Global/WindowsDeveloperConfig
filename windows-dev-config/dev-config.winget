@@ -673,11 +673,11 @@ resources:
 - type: Microsoft.WinGet/Package
   name: Python
   properties:
-    id: Python.Python.3.13
+    id: Python.Python.3.14
     source: winget
     useLatest: true
   metadata:
-    description: Install Python 3.13
+    description: Install Python 3.14
 
 - type: Microsoft.WinGet/Package
   name: UV

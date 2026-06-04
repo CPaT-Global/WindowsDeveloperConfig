@@ -209,7 +209,7 @@ flows:
 
   - id: python
     name: Python
-    description: CPython 3.13 + uv package manager
+    description: CPython 3.14 + uv package manager
     category: languages
     tags: [python, uv, scripting]
     icon: 🐍
