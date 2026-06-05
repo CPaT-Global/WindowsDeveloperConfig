@@ -44,10 +44,22 @@ The flow is a single DSC document (`dev-config.winget`) that handles everything 
 - Windows 11 (latest).
 - `winget` with the DSC v3 processor available (the file uses `Microsoft.WinGet/Package`, `Microsoft.Windows/Registry`, and `Microsoft.DSC.Transitional/*`).
 - Administrator rights — the `ElevationCheck` resource will auto-relaunch winget elevated via `Start-Process -Verb RunAs` if you started in an unelevated session, but you'll need to consent at the UAC prompt.
+- The Microsoft Visual C++ Redistributable when invoking `winget` from a non-elevated environment. Without it, `winget configure` fails with an internal error. See [aka.ms/vcredist](https://aka.ms/vcredist) or install via winget (see the Usage callout below).
 - The repo on disk. `winget configure` reads a local file path, and the bootstrap is what installs Git, so on a fresh machine you'll either `git clone` (if Git is already installed) or download the repo as a ZIP from GitHub and extract it before running.
 - **Hardware virtualization must be available to the OS** before WSL can install. On bare metal, this means virtualization (VT-x / AMD-V) is enabled in BIOS/UEFI. Inside a VM, it means the host has exposed nested virtualization to the guest. See the Usage callout below.
 
 ## Usage
+
+> [!IMPORTANT]
+> If `winget` is being invoked from a **non-elevated** environment, the Microsoft Visual C++ Redistributable ([aka.ms/vcredist](https://aka.ms/vcredist)) must also be installed — without it `winget configure` fails with an internal error. Install it once with the command for your machine's architecture:
+>
+> ```powershell
+> # x64:
+> winget install Microsoft.VCRedist.2015+.x64
+>
+> # ARM64:
+> winget install Microsoft.VCRedist.2015+.arm64
+> ```
 
 > [!IMPORTANT]
 > **WSL needs hardware virtualization.** If virtualization isn't available to the OS, the `InstallUbuntu` step fails with `wsl --install ... failed with exit code -1`.
