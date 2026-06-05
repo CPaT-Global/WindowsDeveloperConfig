@@ -38,6 +38,17 @@ Most of them use [`winget configure`](https://learn.microsoft.com/en-us/windows/
 winget configure --enable
 ```
 
+> [!IMPORTANT]
+> If `winget` is being invoked from a **non-elevated** environment, the Microsoft Visual C++ Redistributable ([aka.ms/vcredist](https://aka.ms/vcredist)) must also be installed — without it `winget configure` fails with an internal error. Install it once with the command for your machine's architecture:
+>
+> ```powershell
+> # x64:
+> winget install Microsoft.VCRedist.2015+.x64
+>
+> # ARM64:
+> winget install Microsoft.VCRedist.2015+.arm64
+> ```
+
 If that fails or `winget configure` is still not recognized, see [Troubleshooting](#-troubleshooting).
 
 <br/>
@@ -137,6 +148,23 @@ See [`src/future/cmdpal/README.md`](./src/future/cmdpal/README.md) for build and
 <summary><strong>"Unrecognized command: configure"</strong></summary>
 
 Run `winget configure --enable`. If `winget configure` is still not recognized after that, [`Workloads/_common/assert-winget-configure.ps1`](./Workloads/_common/assert-winget-configure.ps1) tells you whether App Installer is too old, policy has disabled configuration, or something else needs fixing.
+
+</details>
+
+<details>
+<summary><strong><code>winget configure</code> fails with "internal error" / error code <code>-2146233079</code></strong></summary>
+
+This usually means the Microsoft Visual C++ Redistributable is missing — `winget configure` depends on it when invoked from a non-elevated environment. Install it once with the command for your architecture, then re-run:
+
+```powershell
+# x64:
+winget install Microsoft.VCRedist.2015+.x64
+
+# ARM64:
+winget install Microsoft.VCRedist.2015+.arm64
+```
+
+See [aka.ms/vcredist](https://aka.ms/vcredist) for the standalone installer. The repo's [`Workloads/_common/enable-winget-configure.ps1`](./Workloads/_common/enable-winget-configure.ps1) script also installs it automatically as part of enabling `winget configure`.
 
 </details>
 
