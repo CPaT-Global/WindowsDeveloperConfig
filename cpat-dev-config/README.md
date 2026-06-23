@@ -45,7 +45,7 @@ The flow is a single DSC document (`dev-config.winget`) that handles everything 
 - `winget` with the DSC v3 processor available (the file uses `Microsoft.WinGet/Package`, `Microsoft.Windows/Registry`, and `Microsoft.DSC.Transitional/*`).
 - Administrator rights — the `ElevationCheck` resource will auto-relaunch winget elevated via `Start-Process -Verb RunAs` if you started in an unelevated session, but you'll need to consent at the UAC prompt.
 - The Microsoft Visual C++ Redistributable when invoking `winget` from a non-elevated environment. Without it, `winget configure` fails with an internal error. See [aka.ms/vcredist](https://aka.ms/vcredist) or install via winget (see the Usage callout below).
-- The repo on disk. `winget configure` reads a local file path, and the bootstrap is what installs Git, so on a fresh machine you'll either `git clone` (if Git is already installed) or download the repo as a ZIP from GitHub and extract it before running.
+- The repo on disk. `winget configure` reads a local file path, so install Git first and then clone the repo (or download/extract the ZIP if you prefer).
 - **Hardware virtualization must be available to the OS** before WSL can install. On bare metal, this means virtualization (VT-x / AMD-V) is enabled in BIOS/UEFI. Inside a VM, it means the host has exposed nested virtualization to the guest. See the Usage callout below.
 
 ## Usage
@@ -76,14 +76,12 @@ The flow is a single DSC document (`dev-config.winget`) that handles everything 
 **Get the files first** (skip if you already have the repo locally):
 
 ```powershell
-# Git already installed:
+# Install Git first:
+winget install --id Git.Git --source winget --accept-source-agreements --accept-package-agreements
+
+# Then clone:
 git clone https://github.com/microsoft/WindowsDeveloperConfig.git
 cd WindowsDeveloperConfig\cpat-dev-config
-
-# Otherwise, download and extract the ZIP:
-Invoke-WebRequest -Uri https://github.com/microsoft/WindowsDeveloperConfig/archive/refs/heads/main.zip -OutFile WindowsDeveloperConfig.zip
-Expand-Archive .\WindowsDeveloperConfig.zip -DestinationPath .
-cd .\WindowsDeveloperConfig-main\cpat-dev-config
 ```
 
 **Full setup (recommended):**

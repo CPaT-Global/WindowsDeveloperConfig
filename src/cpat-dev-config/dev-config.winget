@@ -815,6 +815,7 @@ resources:
     source: winget
     useLatest: true
     installMode: silent
+    override: /VERYSILENT /NORESTART /MERGETASKS="addcontextmenufiles,addcontextmenufolders"
   metadata:
     description: Install VS Code
 
@@ -877,6 +878,7 @@ resources:
   properties:
     id: XP9MGBQV4XPRJD
     source: msstore
+    acceptPackageAgreements: true
     useLatest: true
     installMode: silent
   metadata:
