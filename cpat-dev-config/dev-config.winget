@@ -824,42 +824,70 @@ resources:
     - VSCode
   properties:
     getScript: |
-      $marker = Get-ItemPropertyValue -Path 'HKCU:\Software\CPaT\WindowsDeveloperConfig' -Name 'VSCodeContextMenuConfigured' -ErrorAction SilentlyContinue
-      return @{ configured = ($marker -eq 1) }
+      $isClassicForced = Test-Path 'HKCU:\Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32'
+      $appx = Get-AppxPackage -Name 'Microsoft.VisualStudioCode' -ErrorAction SilentlyContinue
+      $title = Get-ItemPropertyValue -Path 'HKCU:\Software\Classes\VSCodeContextMenu' -Name 'Title' -ErrorAction SilentlyContinue
+      return @{
+        classicMenuForced = $isClassicForced
+        appxInstalled = [bool]$appx
+        title = $title
+        configured = ($isClassicForced -or ([bool]$appx -and [string]::IsNullOrWhiteSpace($title) -eq $false))
+      }
     testScript: |
-      $marker = Get-ItemPropertyValue -Path 'HKCU:\Software\CPaT\WindowsDeveloperConfig' -Name 'VSCodeContextMenuConfigured' -ErrorAction SilentlyContinue
-      return ($marker -eq 1)
+      $isClassicForced = Test-Path 'HKCU:\Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32'
+      if ($isClassicForced) { return $true }
+
+      $appx = Get-AppxPackage -Name 'Microsoft.VisualStudioCode' -ErrorAction SilentlyContinue
+      $title = Get-ItemPropertyValue -Path 'HKCU:\Software\Classes\VSCodeContextMenu' -Name 'Title' -ErrorAction SilentlyContinue
+      return ([bool]$appx -and [string]::IsNullOrWhiteSpace($title) -eq $false)
     setScript: |
+      $ErrorActionPreference = 'Stop'
+
+      $isClassicForced = Test-Path 'HKCU:\Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32'
+      if ($isClassicForced) { return }
+
       @(
         'HKCU:\Software\Classes\*\shell\VSCode',
-        'HKCU:\Software\Classes\Directory\shell\VSCode'
+        'HKCU:\Software\Classes\Directory\shell\VSCode',
+        'HKCU:\Software\Classes\Directory\Background\shell\VSCode',
+        'HKCU:\Software\Classes\Drive\shell\VSCode'
       ) | ForEach-Object {
         if (Test-Path $_) {
           Remove-Item -Path $_ -Recurse -Force
         }
       }
 
-      $override = '/VERYSILENT /NORESTART /MERGETASKS="addcontextmenufiles,addcontextmenufolders"'
-      $proc = Start-Process -FilePath 'winget' -ArgumentList @(
-        'install',
-        '--id', 'Microsoft.VisualStudioCode',
-        '--source', 'winget',
-        '--exact',
-        '--override', $override,
-        '--accept-source-agreements',
-        '--accept-package-agreements',
-        '--disable-interactivity',
-        '--force'
-      ) -Wait -NoNewWindow -PassThru
+      $paths = @(
+        "$env:LOCALAPPDATA\Programs\Microsoft VS Code\Code.exe",
+        "$env:ProgramFiles\Microsoft VS Code\Code.exe",
+        "${env:ProgramFiles(x86)}\Microsoft VS Code\Code.exe"
+      ) | Where-Object { $_ -and (Test-Path $_) }
+      $codeExe = $paths | Select-Object -First 1
+      if (-not $codeExe) { throw 'VS Code executable was not found after VSCode package installation.' }
 
-      if ($proc.ExitCode -ne 0) {
-        throw "winget install/repair for VS Code context menu failed with exit code $($proc.ExitCode)."
+      $installRoot = Split-Path $codeExe -Parent
+      $appxFile = Get-ChildItem -Path $installRoot -Recurse -Filter 'code_*.appx' -ErrorAction SilentlyContinue |
+        Sort-Object LastWriteTime -Descending |
+        Select-Object -First 1
+      if (-not $appxFile) {
+        throw "VS Code Explorer AppX package was not found under '$installRoot'."
       }
 
-      New-Item -Path 'HKCU:\Software\CPaT\WindowsDeveloperConfig' -Force | Out-Null
-      Set-ItemProperty -Path 'HKCU:\Software\CPaT\WindowsDeveloperConfig' -Name 'VSCodeContextMenuConfigured' -Type DWord -Value 1
+      $appxInstalled = Get-AppxPackage -Name 'Microsoft.VisualStudioCode' -ErrorAction SilentlyContinue
+      if (-not $appxInstalled) {
+        Add-AppxPackage -Path $appxFile.FullName -ExternalLocation $appxFile.DirectoryName
+      }
+
+      New-Item -Path 'HKCU:\Software\Classes\VSCodeContextMenu' -Force | Out-Null
+      Set-ItemProperty -Path 'HKCU:\Software\Classes\VSCodeContextMenu' -Name 'Title' -Type ExpandString -Value 'Open w&ith Code'
+
+      $verifyAppx = Get-AppxPackage -Name 'Microsoft.VisualStudioCode' -ErrorAction SilentlyContinue
+      $verifyTitle = Get-ItemPropertyValue -Path 'HKCU:\Software\Classes\VSCodeContextMenu' -Name 'Title' -ErrorAction SilentlyContinue
+      if (-not $verifyAppx -or [string]::IsNullOrWhiteSpace($verifyTitle)) {
+        throw 'VS Code Windows 11 context menu registration is incomplete.'
+      }
   metadata:
-    description: Ensure VS Code installer context menu tasks are applied
+    description: Ensure VS Code Windows 11 context menu registration is applied
 
 - type: Microsoft.WinGet/Package
   name: DotnetSdk
