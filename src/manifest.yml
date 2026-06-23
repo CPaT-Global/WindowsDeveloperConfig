@@ -299,6 +299,28 @@ flows:
       expected: src/tests/calm-os/expected.txt
       version: "git --version"
 
+  - id: cpat-dev-config
+    name: CPaT Dev Config
+    description: CPaT-branded developer workstation flow based on Calm OS
+    category: user-experience
+    tags: [user-experience, cpat, calm-os, distraction-free, taskbar, wsl, ubuntu]
+    icon: 🧘
+    onboardingUrl: https://dev.windows.com
+    # Heavy machine-state changes (Sudo, Recall off, Click To Do off, WSL +
+    # Ubuntu install with a forced reboot, etc.) — keep out of the automated
+    # matrix. The probe under src/tests/cpat-dev-config/probe.ps1 is for a
+    # human running the flow locally; it asserts that `git` resolves on PATH
+    # after the install (the apps module's first dep) as a fast smoke signal.
+    manual_test: true
+    os: [windows]
+    windows:
+      install: cpat-dev-config/install.ps1
+      configuration: cpat-dev-config/dev-config.winget
+      build: ""
+      run: pwsh -NoProfile -File src/tests/cpat-dev-config/probe.ps1
+      expected: src/tests/cpat-dev-config/expected.txt
+      version: "git --version"
+
 # Curated bundles of flows. Surfaced by the Command Palette extension; not
 # consumed by CI today.
 combos: []
