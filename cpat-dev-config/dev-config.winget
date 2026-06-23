@@ -815,9 +815,85 @@ resources:
     source: winget
     useLatest: true
     installMode: silent
-    override: /VERYSILENT /NORESTART /MERGETASKS="addcontextmenufiles,addcontextmenufolders"
   metadata:
     description: Install VS Code
+
+- type: Microsoft.DSC.Transitional/PowerShellScript
+  name: VSCodeExplorerContextMenus
+  dependsOn:
+    - VSCode
+  properties:
+    getScript: |
+      $paths = @(
+        "$env:LOCALAPPDATA\Programs\Microsoft VS Code\Code.exe",
+        "$env:ProgramFiles\Microsoft VS Code\Code.exe",
+        "${env:ProgramFiles(x86)}\Microsoft VS Code\Code.exe"
+      ) | Where-Object { $_ -and (Test-Path $_) }
+      $codeExe = $paths | Select-Object -First 1
+
+      $result = @{
+        codeExe = $codeExe
+        configured = $false
+      }
+
+      if (-not $codeExe) { return $result }
+
+      function Get-DefaultValue([string]$subKey) {
+        $key = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey($subKey)
+        if (-not $key) { return $null }
+        return [string]$key.GetValue('')
+      }
+
+      $expectedFileCmd = "`"$codeExe`" `"%1`""
+      $expectedDirCmd = "`"$codeExe`" `"%V`""
+      $fileCmd = Get-DefaultValue 'Software\Classes\*\shell\VSCode\command'
+      $dirCmd = Get-DefaultValue 'Software\Classes\Directory\shell\VSCode\command'
+      $result.configured = ($fileCmd -eq $expectedFileCmd -and $dirCmd -eq $expectedDirCmd)
+      return $result
+    testScript: |
+      $paths = @(
+        "$env:LOCALAPPDATA\Programs\Microsoft VS Code\Code.exe",
+        "$env:ProgramFiles\Microsoft VS Code\Code.exe",
+        "${env:ProgramFiles(x86)}\Microsoft VS Code\Code.exe"
+      ) | Where-Object { $_ -and (Test-Path $_) }
+      $codeExe = $paths | Select-Object -First 1
+      if (-not $codeExe) { return $false }
+
+      function Get-DefaultValue([string]$subKey) {
+        $key = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey($subKey)
+        if (-not $key) { return $null }
+        return [string]$key.GetValue('')
+      }
+
+      $expectedFileCmd = "`"$codeExe`" `"%1`""
+      $expectedDirCmd = "`"$codeExe`" `"%V`""
+      $fileCmd = Get-DefaultValue 'Software\Classes\*\shell\VSCode\command'
+      $dirCmd = Get-DefaultValue 'Software\Classes\Directory\shell\VSCode\command'
+      return ($fileCmd -eq $expectedFileCmd -and $dirCmd -eq $expectedDirCmd)
+    setScript: |
+      $paths = @(
+        "$env:LOCALAPPDATA\Programs\Microsoft VS Code\Code.exe",
+        "$env:ProgramFiles\Microsoft VS Code\Code.exe",
+        "${env:ProgramFiles(x86)}\Microsoft VS Code\Code.exe"
+      ) | Where-Object { $_ -and (Test-Path $_) }
+      $codeExe = $paths | Select-Object -First 1
+      if (-not $codeExe) { throw 'VS Code executable was not found after VSCode package installation.' }
+
+      function Set-RegistryValue([string]$subKey, [string]$valueName, [string]$value) {
+        $key = [Microsoft.Win32.Registry]::CurrentUser.CreateSubKey($subKey)
+        if (-not $key) { throw "Failed to open or create registry key: HKCU\\$subKey" }
+        $key.SetValue($valueName, $value, [Microsoft.Win32.RegistryValueKind]::String)
+      }
+
+      Set-RegistryValue 'Software\Classes\*\shell\VSCode' '' 'Edit with Code'
+      Set-RegistryValue 'Software\Classes\*\shell\VSCode' 'Icon' "`"$codeExe`",0"
+      Set-RegistryValue 'Software\Classes\*\shell\VSCode\command' '' "`"$codeExe`" `"%1`""
+
+      Set-RegistryValue 'Software\Classes\Directory\shell\VSCode' '' 'Open with Code'
+      Set-RegistryValue 'Software\Classes\Directory\shell\VSCode' 'Icon' "`"$codeExe`",0"
+      Set-RegistryValue 'Software\Classes\Directory\shell\VSCode\command' '' "`"$codeExe`" `"%V`""
+  metadata:
+    description: Ensure VS Code file/folder context menu entries are configured
 
 - type: Microsoft.WinGet/Package
   name: DotnetSdk
