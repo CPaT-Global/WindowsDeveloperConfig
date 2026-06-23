@@ -824,76 +824,42 @@ resources:
     - VSCode
   properties:
     getScript: |
-      $paths = @(
-        "$env:LOCALAPPDATA\Programs\Microsoft VS Code\Code.exe",
-        "$env:ProgramFiles\Microsoft VS Code\Code.exe",
-        "${env:ProgramFiles(x86)}\Microsoft VS Code\Code.exe"
-      ) | Where-Object { $_ -and (Test-Path $_) }
-      $codeExe = $paths | Select-Object -First 1
-
-      $result = @{
-        codeExe = $codeExe
-        configured = $false
-      }
-
-      if (-not $codeExe) { return $result }
-
-      function Get-DefaultValue([string]$subKey) {
-        $key = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey($subKey)
-        if (-not $key) { return $null }
-        return [string]$key.GetValue('')
-      }
-
-      $expectedFileCmd = "`"$codeExe`" `"%1`""
-      $expectedDirCmd = "`"$codeExe`" `"%V`""
-      $fileCmd = Get-DefaultValue 'Software\Classes\*\shell\VSCode\command'
-      $dirCmd = Get-DefaultValue 'Software\Classes\Directory\shell\VSCode\command'
-      $result.configured = ($fileCmd -eq $expectedFileCmd -and $dirCmd -eq $expectedDirCmd)
-      return $result
+      $marker = Get-ItemPropertyValue -Path 'HKCU:\Software\CPaT\WindowsDeveloperConfig' -Name 'VSCodeContextMenuConfigured' -ErrorAction SilentlyContinue
+      return @{ configured = ($marker -eq 1) }
     testScript: |
-      $paths = @(
-        "$env:LOCALAPPDATA\Programs\Microsoft VS Code\Code.exe",
-        "$env:ProgramFiles\Microsoft VS Code\Code.exe",
-        "${env:ProgramFiles(x86)}\Microsoft VS Code\Code.exe"
-      ) | Where-Object { $_ -and (Test-Path $_) }
-      $codeExe = $paths | Select-Object -First 1
-      if (-not $codeExe) { return $false }
-
-      function Get-DefaultValue([string]$subKey) {
-        $key = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey($subKey)
-        if (-not $key) { return $null }
-        return [string]$key.GetValue('')
-      }
-
-      $expectedFileCmd = "`"$codeExe`" `"%1`""
-      $expectedDirCmd = "`"$codeExe`" `"%V`""
-      $fileCmd = Get-DefaultValue 'Software\Classes\*\shell\VSCode\command'
-      $dirCmd = Get-DefaultValue 'Software\Classes\Directory\shell\VSCode\command'
-      return ($fileCmd -eq $expectedFileCmd -and $dirCmd -eq $expectedDirCmd)
+      $marker = Get-ItemPropertyValue -Path 'HKCU:\Software\CPaT\WindowsDeveloperConfig' -Name 'VSCodeContextMenuConfigured' -ErrorAction SilentlyContinue
+      return ($marker -eq 1)
     setScript: |
-      $paths = @(
-        "$env:LOCALAPPDATA\Programs\Microsoft VS Code\Code.exe",
-        "$env:ProgramFiles\Microsoft VS Code\Code.exe",
-        "${env:ProgramFiles(x86)}\Microsoft VS Code\Code.exe"
-      ) | Where-Object { $_ -and (Test-Path $_) }
-      $codeExe = $paths | Select-Object -First 1
-      if (-not $codeExe) { throw 'VS Code executable was not found after VSCode package installation.' }
-
-      function Set-RegistryValue([string]$subKey, [string]$valueName, [string]$value) {
-        $key = [Microsoft.Win32.Registry]::CurrentUser.CreateSubKey($subKey)
-        if (-not $key) { throw "Failed to open or create registry key: HKCU\\$subKey" }
-        $key.SetValue($valueName, $value, [Microsoft.Win32.RegistryValueKind]::String)
+      @(
+        'HKCU:\Software\Classes\*\shell\VSCode',
+        'HKCU:\Software\Classes\Directory\shell\VSCode'
+      ) | ForEach-Object {
+        if (Test-Path $_) {
+          Remove-Item -Path $_ -Recurse -Force
+        }
       }
 
-      Set-RegistryValue 'Software\Classes\*\shell\VSCode' '' 'Edit with Code'
-      Set-RegistryValue 'Software\Classes\*\shell\VSCode' 'Icon' "`"$codeExe`",0"
-      Set-RegistryValue 'Software\Classes\*\shell\VSCode\command' '' "`"$codeExe`" `"%1`""
+      $override = '/VERYSILENT /NORESTART /MERGETASKS="addcontextmenufiles,addcontextmenufolders"'
+      $proc = Start-Process -FilePath 'winget' -ArgumentList @(
+        'install',
+        '--id', 'Microsoft.VisualStudioCode',
+        '--source', 'winget',
+        '--exact',
+        '--override', $override,
+        '--accept-source-agreements',
+        '--accept-package-agreements',
+        '--disable-interactivity',
+        '--force'
+      ) -Wait -NoNewWindow -PassThru
 
-      Set-RegistryValue 'Software\Classes\Directory\shell\VSCode' '' 'Open with Code'
-      Set-RegistryValue 'Software\Classes\Directory\shell\VSCode' 'Icon' "`"$codeExe`",0"
-      Set-RegistryValue 'Software\Classes\Directory\shell\VSCode\command' '' "`"$codeExe`" `"%V`""
+      if ($proc.ExitCode -ne 0) {
+        throw "winget install/repair for VS Code context menu failed with exit code $($proc.ExitCode)."
+      }
+
+      New-Item -Path 'HKCU:\Software\CPaT\WindowsDeveloperConfig' -Force | Out-Null
+      Set-ItemProperty -Path 'HKCU:\Software\CPaT\WindowsDeveloperConfig' -Name 'VSCodeContextMenuConfigured' -Type DWord -Value 1
   metadata:
-    description: Ensure VS Code file/folder context menu entries are configured
+    description: Ensure VS Code installer context menu tasks are applied
 
 - type: Microsoft.WinGet/Package
   name: DotnetSdk
