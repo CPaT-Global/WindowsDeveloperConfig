@@ -103,7 +103,7 @@ The configuration is idempotent, so it is safe to re-run after reboot or at any 
 
 ## What this configures
 
-- **16 apps** via winget (PowerShell 7, Git, GitHub CLI, GitHub Copilot CLI, VS Code, .NET SDK 10, Python 3.14, UV, Node.js LTS, Docker Desktop, ABP Studio, NVM for Windows, Coreutils for Windows, Windows Application CLI, plus optional Oh My Posh and PowerToys).
+- **17 apps** via winget (PowerShell 7, Git, TortoiseGit, GitHub CLI, GitHub Copilot CLI, VS Code, .NET SDK 10, Python 3.14, UV, Node.js LTS, Docker Desktop, ABP Studio, NVM for Windows, Coreutils for Windows, Windows Application CLI, plus optional Oh My Posh and PowerToys).
 - **WSL + Ubuntu**, installed via 3 transitional script resources that bracket a reboot (Phase 2/3/4 below).
 - **~24 registry settings** for theme/OS, Explorer, Taskbar, Search, Start, Notifications, Edge, Sudo, and the Widget service.
 - **Cascadia Code & Cascadia Mono Nerd Fonts** downloaded from the `microsoft/cascadia-code` GitHub release and registered per-user.
@@ -140,6 +140,7 @@ All app resources that need WSL present depend on `InstallUbuntu` so the OS work
 |---------------|-----------|-------|
 | `PowerShell` | `Microsoft.PowerShell` | Direct dependency on `ElevationCheck`. |
 | `Git` | `Git.Git` | Depends on `ElevationCheck` + `InstallUbuntu`. |
+| `TortoiseGit` | `TortoiseGit.TortoiseGit` | Depends on `Git`. |
 | `GitHubCLI` | `GitHub.Cli` | Depends on `Git` + `InstallUbuntu`. |
 | `GitHubCopilot` | `GitHub.Copilot` | Depends on `Git` + `InstallUbuntu`. |
 | `VSCode` | `Microsoft.VisualStudioCode` | |

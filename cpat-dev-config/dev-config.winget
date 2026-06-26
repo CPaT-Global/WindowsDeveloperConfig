@@ -797,6 +797,19 @@ resources:
     securityContext: elevated
 
 - type: Microsoft.WinGet/Package
+  name: TortoiseGit
+  dependsOn:
+  - Git
+  properties:
+    id: TortoiseGit.TortoiseGit
+    source: winget
+    useLatest: true
+    installMode: silent
+  metadata:
+    description: Install TortoiseGit
+    securityContext: elevated
+
+- type: Microsoft.WinGet/Package
   name: GitHubCopilot
   dependsOn:
   - Git
