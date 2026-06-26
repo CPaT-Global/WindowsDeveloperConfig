@@ -990,6 +990,72 @@ resources:
     securityContext: elevated
 
 - type: Microsoft.WinGet/Package
+  name: Ripgrep
+  properties:
+    id: BurntSushi.ripgrep.MSVC
+    source: winget
+    useLatest: true
+    installMode: silent
+  metadata:
+    description: Install ripgrep
+    securityContext: elevated
+
+- type: Microsoft.WinGet/Package
+  name: FD
+  properties:
+    id: sharkdp.fd
+    source: winget
+    useLatest: true
+    installMode: silent
+  metadata:
+    description: Install fd
+    securityContext: elevated
+
+- type: Microsoft.WinGet/Package
+  name: JQ
+  properties:
+    id: jqlang.jq
+    source: winget
+    useLatest: true
+    installMode: silent
+  metadata:
+    description: Install jq
+    securityContext: elevated
+
+- type: Microsoft.WinGet/Package
+  name: Bat
+  properties:
+    id: sharkdp.bat
+    source: winget
+    useLatest: true
+    installMode: silent
+  metadata:
+    description: Install bat
+    securityContext: elevated
+
+- type: Microsoft.WinGet/Package
+  name: FZF
+  properties:
+    id: junegunn.fzf
+    source: winget
+    useLatest: true
+    installMode: silent
+  metadata:
+    description: Install fzf
+    securityContext: elevated
+
+- type: Microsoft.WinGet/Package
+  name: GitDelta
+  properties:
+    id: dandavison.delta
+    source: winget
+    useLatest: true
+    installMode: silent
+  metadata:
+    description: Install git-delta
+    securityContext: elevated
+
+- type: Microsoft.WinGet/Package
   name: OhMyPosh
   properties:
     id: JanDeDobbeleer.OhMyPosh
