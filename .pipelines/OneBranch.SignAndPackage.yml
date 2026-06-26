@@ -51,6 +51,7 @@ extends:
                   SourceFolder: $(Build.SourcesDirectory)
                   Contents: |
                     src/cpat-dev-config/**
+                    src/cpat-test-config/**
                     src/windows-dev-config/**
                     src/Workloads/**
                     src/wsl-comfort/**

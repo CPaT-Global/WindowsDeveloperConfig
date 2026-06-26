@@ -321,6 +321,24 @@ flows:
       expected: src/tests/cpat-dev-config/expected.txt
       version: "git --version"
 
+  - id: cpat-test-config
+    name: CPaT Test Config
+    description: CPaT QA-oriented workstation flow without WSL and Docker
+    category: user-experience
+    tags: [user-experience, cpat, qa, calm-os, distraction-free, taskbar]
+    icon: 🧪
+    onboardingUrl: https://dev.windows.com
+    # Still a machine-state flow with app installs and registry changes.
+    manual_test: true
+    os: [windows]
+    windows:
+      install: cpat-test-config/install.ps1
+      configuration: cpat-test-config/dev-config.winget
+      build: ""
+      run: pwsh -NoProfile -File src/tests/cpat-test-config/probe.ps1
+      expected: src/tests/cpat-test-config/expected.txt
+      version: "git --version"
+
 # Curated bundles of flows. Surfaced by the Command Palette extension; not
 # consumed by CI today.
 combos: []
