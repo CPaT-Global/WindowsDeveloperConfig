@@ -11,6 +11,10 @@
 <h3 align="center">
   <a href="#%EF%B8%8F-windows-dev-config">Windows Dev Config</a>
   <span> · </span>
+  <a href="#-cpat-dev-config">CPaT Dev Config</a>
+  <span> · </span>
+  <a href="#-cpat-test-config">CPaT Test Config</a>
+  <span> · </span>
   <a href="#-wsl-comfort">WSL Comfort</a>
   <span> · </span>
   <a href="#-single-language-workloads">Workloads</a>
@@ -22,20 +26,22 @@
 
 Go from a fresh Windows install to a fully configured dev box in one command. These declarative, CI-tested configs set up your tools, settings, and shells the same way every time — so any machine can be your machine in minutes.
 
-## 🎯 Pick your setup
+## 🛠️ Prepare your machine
 
-Three developer setups live in this repo. Pick the one that matches what you want:
+Before picking a setup, prepare your machine once:
 
-| You want... | Go to |
-| --- | --- |
-| A complete dev workstation: tools, OS settings, WSL, and terminal. One command, may reboot. | [Windows Dev Config](#%EF%B8%8F-windows-dev-config) |
-| A polished WSL shell: zsh/bash, Starship, CLI tools, and a themed terminal profile. Interactive or unattended. | [WSL Comfort](#-wsl-comfort) |
-| A single language toolchain: Node, Python, SQL, PowerShell, .NET, Rust, Go, Java, PHP, WinForms, or WinUI 3. One command each. | [Workloads](#-single-language-workloads) |
-
-Most of them use [`winget configure`](https://learn.microsoft.com/en-us/windows/package-manager/winget/configure). If you've never used it before, enable it once:
+1. Enable [`winget configure`](https://learn.microsoft.com/en-us/windows/package-manager/winget/configure):
 
 ```powershell
 winget configure --enable
+```
+
+2. Install Git and clone the repo:
+
+```powershell
+winget install --id Git.Git --source winget --accept-source-agreements --accept-package-agreements
+git clone https://github.com/CPaT-Global/WindowsDeveloperConfig.git
+cd WindowsDeveloperConfig
 ```
 
 > [!IMPORTANT]
@@ -53,26 +59,27 @@ If that fails or `winget configure` is still not recognized, see [Troubleshootin
 
 <br/>
 
+## 🎯 Pick your setup
+
+Five developer setups live in this repo. Pick the one that matches what you want:
+
+| You want... | Go to |
+| --- | --- |
+| A complete dev workstation: tools, OS settings, WSL, and terminal. One command, may reboot. | [Windows Dev Config](#%EF%B8%8F-windows-dev-config) |
+| A CPaT-focused developer workstation with Cloud PC parity, including Docker Desktop, ABP Studio, and WSL + Ubuntu. | [CPaT Dev Config](#-cpat-dev-config) |
+| A CPaT-focused QA workstation optimized for Playwright and desktop tooling, without WSL, Docker Desktop, or ABP Studio. | [CPaT Test Config](#-cpat-test-config) |
+| A polished WSL shell: zsh/bash, Starship, CLI tools, and a themed terminal profile. Interactive or unattended. | [WSL Comfort](#-wsl-comfort) |
+| A single language toolchain: Node, Python, SQL, PowerShell, .NET, Rust, Go, Java, PHP, WinForms, or WinUI 3. One command each. | [Workloads](#-single-language-workloads) |
+
+<br/>
+
 ## 🖥️ Windows Dev Config
 
 *Turns a fresh Windows 11 box into a clean, distraction-free dev workstation in one shot.*
 
 A single [winget configuration](https://learn.microsoft.com/en-us/windows/package-manager/configuration/) file that installs dev tools, applies opinionated Windows settings, and bootstraps WSL + Ubuntu through the required reboot. Non-interactive. Idempotent. Safe to re-run on an existing machine.
 
-First, get the files onto the box. The config is invoked from a local path, but the bootstrap itself is what installs Git — so on a clean Windows install you'll typically download the repo as a ZIP. If Git is already there, clone it:
-
-```powershell
-# Git already installed:
-git clone https://github.com/CPaT-Global/WindowsDeveloperConfig.git
-cd WindowsDeveloperConfig
-
-# Otherwise, download and extract the ZIP:
-Invoke-WebRequest -Uri https://github.com/CPaT-Global/WindowsDeveloperConfig/archive/refs/heads/main.zip -OutFile WindowsDeveloperConfig.zip
-Expand-Archive .\WindowsDeveloperConfig.zip -DestinationPath .
-cd .\WindowsDeveloperConfig-main
-```
-
-Then apply the configuration:
+Apply the configuration:
 
 ```powershell
 winget configure -f .\windows-dev-config\dev-config.winget --accept-configuration-agreements --disable-interactivity
@@ -91,6 +98,36 @@ winget configure -f .\windows-dev-config\dev-config.winget --accept-configuratio
 </details>
 
 Full details: [`windows-dev-config/README.md`](./windows-dev-config/README.md).
+
+<br/>
+
+## 🧰 CPaT Dev Config
+
+*A CPaT-curated full developer workstation profile with Cloud PC parity.*
+
+This WinGet DSC profile mirrors the CPaT Cloud PC baseline with opinionated OS settings and developer tools, including Docker Desktop, ABP Studio, and WSL + Ubuntu (with reboot/resume handling).
+
+```powershell
+winget configure -f .\cpat-dev-config\dev-config.winget --accept-configuration-agreements --disable-interactivity
+```
+
+> ⚠️ **May reboot.** Like the base Windows Dev Config flow, this setup installs WSL platform components and resumes automatically after sign-in.
+
+Full details: [`cpat-dev-config/README.md`](./cpat-dev-config/README.md).
+
+<br/>
+
+## 🧪 CPaT Test Config
+
+*A CPaT QA-focused workstation profile for test automation and validation workflows.*
+
+This profile is based on CPaT Dev Config but intentionally excludes WSL + Ubuntu, Docker Desktop, ABP Studio, and winappcli. It keeps core desktop/dev tooling and adds Playwright QA setup support.
+
+```powershell
+winget configure -f .\cpat-test-config\dev-config.winget --accept-configuration-agreements --disable-interactivity
+```
+
+Full details: [`cpat-test-config/README.md`](./cpat-test-config/README.md), plus the end-to-end QA onboarding guide: [`QA-SETUP-README.md`](./QA-SETUP-README.md).
 
 <br/>
 
