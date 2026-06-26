@@ -103,7 +103,7 @@ The configuration is idempotent, so it is safe to re-run after reboot or at any 
 
 ## What this configures
 
-- **17 apps** via winget (PowerShell 7, Git, TortoiseGit, GitHub CLI, GitHub Copilot CLI, VS Code, .NET SDK 10, Python 3.14, UV, Node.js LTS, Docker Desktop, ABP Studio, NVM for Windows, Coreutils for Windows, Windows Application CLI, plus optional Oh My Posh and PowerToys).
+- **23 apps** via winget (PowerShell 7, Git, TortoiseGit, GitHub CLI, GitHub Copilot CLI, VS Code, .NET SDK 10, Python 3.14, UV, Node.js LTS, Docker Desktop, ABP Studio, NVM for Windows, Coreutils for Windows, ripgrep, fd, jq, bat, fzf, git-delta, Windows Application CLI, plus optional Oh My Posh and PowerToys).
 - **WSL + Ubuntu**, installed via 3 transitional script resources that bracket a reboot (Phase 2/3/4 below).
 - **~24 registry settings** for theme/OS, Explorer, Taskbar, Search, Start, Notifications, Edge, Sudo, and the Widget service.
 - **Cascadia Code & Cascadia Mono Nerd Fonts** downloaded from the `microsoft/cascadia-code` GitHub release and registered per-user.
@@ -152,6 +152,12 @@ All app resources that need WSL present depend on `InstallUbuntu` so the OS work
 | `ABPStudio` | `XP9MGBQV4XPRJD` | ABP Studio from Microsoft Store (`msstore` source). |
 | `nvmForNode` | `CoreyButler.NVMforWindows` | Node version manager for Windows. |
 | `Coreutils` | `Microsoft.Coreutils` | Microsoft-maintained Coreutils for Windows. Command integration is handled by the package itself after install. |
+| `Ripgrep` | `BurntSushi.ripgrep.MSVC` | Fast recursive search (`rg`) for code and text in terminals and scripts. |
+| `FD` | `sharkdp.fd` | Fast and user-friendly file finder (`fd`). |
+| `JQ` | `jqlang.jq` | Command-line JSON processor (`jq`) for scripting and pipelines. |
+| `Bat` | `sharkdp.bat` | Syntax-highlighted `cat` replacement (`bat`). |
+| `FZF` | `junegunn.fzf` | Interactive fuzzy finder (`fzf`) for files, history, and commands. |
+| `GitDelta` | `dandavison.delta` | Side-by-side, syntax-aware pager for `git diff`. |
 | `OhMyPosh` | `JanDeDobbeleer.OhMyPosh` | Marked Optional in the comments. Triggers `ohMyPoshProfileSet`. |
 | `winappCli` | `Microsoft.winappcli` | Windows Application CLI. |
 | `PowerToys` | `Microsoft.PowerToys` | Marked Optional. Followed by `PowerToysAOT` which disables AOT notifications via registry. |
