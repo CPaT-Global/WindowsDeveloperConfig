@@ -902,6 +902,56 @@ resources:
   metadata:
     description: Ensure VS Code Windows 11 context menu registration is applied
 
+- type: Microsoft.DSC.Transitional/PowerShellScript
+  name: VSCodePlaywrightExtension
+  dependsOn:
+    - VSCode
+  properties:
+    getScript: |
+      $paths = @(
+        "$env:LOCALAPPDATA\Programs\Microsoft VS Code\Code.exe",
+        "$env:ProgramFiles\Microsoft VS Code\Code.exe",
+        "${env:ProgramFiles(x86)}\Microsoft VS Code\Code.exe"
+      ) | Where-Object { $_ -and (Test-Path $_) }
+      $codeExe = $paths | Select-Object -First 1
+      if (-not $codeExe) {
+        return @{ installed = $false; reason = 'code.exe not found' }
+      }
+
+      $extensions = & $codeExe --list-extensions 2>$null
+      $installed = [bool]($extensions | Where-Object { $_.Trim().ToLowerInvariant() -eq 'ms-playwright.playwright' })
+      return @{ installed = $installed }
+    testScript: |
+      $paths = @(
+        "$env:LOCALAPPDATA\Programs\Microsoft VS Code\Code.exe",
+        "$env:ProgramFiles\Microsoft VS Code\Code.exe",
+        "${env:ProgramFiles(x86)}\Microsoft VS Code\Code.exe"
+      ) | Where-Object { $_ -and (Test-Path $_) }
+      $codeExe = $paths | Select-Object -First 1
+      if (-not $codeExe) { return $false }
+
+      $extensions = & $codeExe --list-extensions 2>$null
+      return [bool]($extensions | Where-Object { $_.Trim().ToLowerInvariant() -eq 'ms-playwright.playwright' })
+    setScript: |
+      $ErrorActionPreference = 'Stop'
+
+      $paths = @(
+        "$env:LOCALAPPDATA\Programs\Microsoft VS Code\Code.exe",
+        "$env:ProgramFiles\Microsoft VS Code\Code.exe",
+        "${env:ProgramFiles(x86)}\Microsoft VS Code\Code.exe"
+      ) | Where-Object { $_ -and (Test-Path $_) }
+      $codeExe = $paths | Select-Object -First 1
+      if (-not $codeExe) {
+        throw 'VS Code executable was not found after VSCode package installation.'
+      }
+
+      & $codeExe --install-extension ms-playwright.playwright --force
+      if ($LASTEXITCODE -ne 0) {
+        throw "Failed to install VS Code Playwright extension (exit code $LASTEXITCODE)."
+      }
+  metadata:
+    description: Install VS Code Playwright extension
+
 - type: Microsoft.WinGet/Package
   name: DotnetSdk
   properties:
@@ -943,6 +993,74 @@ resources:
     installMode: silent
   metadata:
     description: Install Node.js 24 LTS
+    securityContext: elevated
+
+- type: Microsoft.DSC.Transitional/PowerShellScript
+  name: PlaywrightChromiumBootstrap
+  dependsOn:
+    - NodeJS
+  properties:
+    getScript: |
+      $playwrightCmd = Get-Command playwright -ErrorAction SilentlyContinue
+      if (-not $playwrightCmd) {
+        $candidate = Join-Path $env:APPDATA 'npm\playwright.cmd'
+        if (Test-Path $candidate) {
+          $playwrightCmd = Get-Item -LiteralPath $candidate
+        }
+      }
+
+      $browserRoot = Join-Path $env:LOCALAPPDATA 'ms-playwright'
+      $hasChromium = [bool](Get-ChildItem -Path $browserRoot -Directory -Filter 'chromium-*' -ErrorAction SilentlyContinue | Select-Object -First 1)
+      return @{ cliPresent = [bool]$playwrightCmd; chromiumInstalled = $hasChromium }
+    testScript: |
+      $playwrightCmd = Get-Command playwright -ErrorAction SilentlyContinue
+      if (-not $playwrightCmd) {
+        $candidate = Join-Path $env:APPDATA 'npm\playwright.cmd'
+        if (Test-Path $candidate) {
+          $playwrightCmd = Get-Item -LiteralPath $candidate
+        }
+      }
+
+      $browserRoot = Join-Path $env:LOCALAPPDATA 'ms-playwright'
+      $hasChromium = [bool](Get-ChildItem -Path $browserRoot -Directory -Filter 'chromium-*' -ErrorAction SilentlyContinue | Select-Object -First 1)
+      return ([bool]$playwrightCmd -and $hasChromium)
+    setScript: |
+      $ErrorActionPreference = 'Stop'
+
+      $npm = Get-Command npm -ErrorAction Stop
+      & $npm.Source install --global playwright
+      if ($LASTEXITCODE -ne 0) {
+        throw "Failed to install Playwright npm package (exit code $LASTEXITCODE)."
+      }
+
+      $playwrightExe = Join-Path $env:APPDATA 'npm\playwright.cmd'
+      if (-not (Test-Path $playwrightExe)) {
+        $playwright = Get-Command playwright -ErrorAction SilentlyContinue
+        if ($playwright) {
+          $playwrightExe = $playwright.Source
+        }
+      }
+
+      if (-not (Test-Path $playwrightExe)) {
+        throw 'Playwright CLI was not found after npm global install.'
+      }
+
+      & $playwrightExe install chromium
+      if ($LASTEXITCODE -ne 0) {
+        throw "Failed to install Playwright Chromium browser (exit code $LASTEXITCODE)."
+      }
+  metadata:
+    description: Install Playwright CLI and Chromium browser
+
+- type: Microsoft.WinGet/Package
+  name: Chrome
+  properties:
+    id: Google.Chrome
+    source: winget
+    useLatest: true
+    installMode: silent
+  metadata:
+    description: Install Google Chrome
     securityContext: elevated
 
 - type: Microsoft.WinGet/Package
