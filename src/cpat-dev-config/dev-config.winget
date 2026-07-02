@@ -1174,6 +1174,17 @@ resources:
     securityContext: elevated
 
 - type: Microsoft.WinGet/Package
+  name: WireGuard
+  properties:
+    id: WireGuard.WireGuard
+    source: winget
+    useLatest: true
+    installMode: silent
+  metadata:
+    description: Install WireGuard (wg)
+    securityContext: elevated
+
+- type: Microsoft.WinGet/Package
   name: OhMyPosh
   properties:
     id: JanDeDobbeleer.OhMyPosh
