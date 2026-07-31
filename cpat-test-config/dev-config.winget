@@ -838,6 +838,16 @@ resources:
     description: Install Bruno API client
 
 - type: Microsoft.WinGet/Package
+  name: UniGetUI
+  properties:
+    id: Devolutions.UniGetUI
+    source: winget
+    useLatest: true
+    installMode: silent
+  metadata:
+    description: Install UniGetUI package manager UI
+
+- type: Microsoft.WinGet/Package
   name: Python
   properties:
     id: Python.Python.3.14
