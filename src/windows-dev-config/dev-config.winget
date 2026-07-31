@@ -878,6 +878,7 @@ resources:
     id: Microsoft.Coreutils
     source: winget
     useLatest: true
+    installMode: silent
   metadata:
     description: Install Coreutils for Windows
     securityContext: elevated
@@ -942,6 +943,7 @@ resources:
             # Set input encoding to UTF-8 (for reading user input with non-ASCII chars)
             [Console]::InputEncoding =[System.Text.Encoding]::UTF8
           })
+        skipExistingInit: true
   metadata:
     description: Setup OhMyPosh in PowerShell 7
 
