@@ -103,7 +103,7 @@ The configuration is idempotent, so it is safe to re-run after reboot or at any 
 
 ## What this configures
 
-- **24 apps** via winget (PowerShell 7, Git, TortoiseGit, GitHub CLI, GitHub Copilot CLI, VS Code, .NET SDK 10, Python 3.14, UV, Node.js LTS, Docker Desktop, ABP Studio, NVM for Windows, Coreutils for Windows, ripgrep, fd, jq, bat, fzf, git-delta, WireGuard, Windows Application CLI, plus optional Oh My Posh and PowerToys).
+- **26 apps** via winget (PowerShell 7, Git, TortoiseGit, GitHub CLI, GitHub Copilot CLI, VS Code, .NET SDK 10, Aspire CLI, Bruno, Python 3.14, UV, Node.js LTS, Docker Desktop, ABP Studio, NVM for Windows, Coreutils for Windows, ripgrep, fd, jq, bat, fzf, git-delta, WireGuard, Windows Application CLI, plus optional Oh My Posh and PowerToys).
 - **WSL + Ubuntu**, installed via 3 transitional script resources that bracket a reboot (Phase 2/3/4 below).
 - **~24 registry settings** for theme/OS, Explorer, Taskbar, Search, Start, Notifications, Edge, Sudo, and the Widget service.
 - **Cascadia Code & Cascadia Mono Nerd Fonts** downloaded from the `microsoft/cascadia-code` GitHub release and registered per-user.
@@ -145,6 +145,8 @@ All app resources that need WSL present depend on `InstallUbuntu` so the OS work
 | `GitHubCopilot` | `GitHub.Copilot` | Depends on `Git` + `InstallUbuntu`. |
 | `VSCode` | `Microsoft.VisualStudioCode` | |
 | `DotnetSdk` | `Microsoft.dotnet.SDK.10` | Pinned to v10. |
+| `Aspire` | `Microsoft.Aspire` | Aspire CLI from winget. |
+| `Bruno` | `Bruno.Bruno` | Bruno API client from winget. |
 | `Python` | `Python.Python.3.14` | Pinned to 3.14. |
 | `UV` | `astral-sh.uv` | |
 | `NodeJS` | `OpenJS.NodeJS.LTS` | Pinned to the LTS line (currently Node 24 LTS). |

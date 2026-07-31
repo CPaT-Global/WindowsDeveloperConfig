@@ -964,6 +964,28 @@ resources:
     securityContext: elevated
 
 - type: Microsoft.WinGet/Package
+  name: Aspire
+  dependsOn:
+    - DotnetSdk
+  properties:
+    id: Microsoft.Aspire
+    source: winget
+    useLatest: true
+    installMode: silent
+  metadata:
+    description: Install Aspire CLI
+
+- type: Microsoft.WinGet/Package
+  name: Bruno
+  properties:
+    id: Bruno.Bruno
+    source: winget
+    useLatest: true
+    installMode: silent
+  metadata:
+    description: Install Bruno API client
+
+- type: Microsoft.WinGet/Package
   name: Python
   properties:
     id: Python.Python.3.14
