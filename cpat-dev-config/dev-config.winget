@@ -902,56 +902,6 @@ resources:
   metadata:
     description: Ensure VS Code Windows 11 context menu registration is applied
 
-- type: Microsoft.DSC.Transitional/PowerShellScript
-  name: VSCodePlaywrightExtension
-  dependsOn:
-    - VSCode
-  properties:
-    getScript: |
-      $paths = @(
-        "$env:LOCALAPPDATA\Programs\Microsoft VS Code\Code.exe",
-        "$env:ProgramFiles\Microsoft VS Code\Code.exe",
-        "${env:ProgramFiles(x86)}\Microsoft VS Code\Code.exe"
-      ) | Where-Object { $_ -and (Test-Path $_) }
-      $codeExe = $paths | Select-Object -First 1
-      if (-not $codeExe) {
-        return @{ installed = $false; reason = 'code.exe not found' }
-      }
-
-      $extensions = & $codeExe --list-extensions 2>$null
-      $installed = [bool]($extensions | Where-Object { $_.Trim().ToLowerInvariant() -eq 'ms-playwright.playwright' })
-      return @{ installed = $installed }
-    testScript: |
-      $paths = @(
-        "$env:LOCALAPPDATA\Programs\Microsoft VS Code\Code.exe",
-        "$env:ProgramFiles\Microsoft VS Code\Code.exe",
-        "${env:ProgramFiles(x86)}\Microsoft VS Code\Code.exe"
-      ) | Where-Object { $_ -and (Test-Path $_) }
-      $codeExe = $paths | Select-Object -First 1
-      if (-not $codeExe) { return $false }
-
-      $extensions = & $codeExe --list-extensions 2>$null
-      return [bool]($extensions | Where-Object { $_.Trim().ToLowerInvariant() -eq 'ms-playwright.playwright' })
-    setScript: |
-      $ErrorActionPreference = 'Stop'
-
-      $paths = @(
-        "$env:LOCALAPPDATA\Programs\Microsoft VS Code\Code.exe",
-        "$env:ProgramFiles\Microsoft VS Code\Code.exe",
-        "${env:ProgramFiles(x86)}\Microsoft VS Code\Code.exe"
-      ) | Where-Object { $_ -and (Test-Path $_) }
-      $codeExe = $paths | Select-Object -First 1
-      if (-not $codeExe) {
-        throw 'VS Code executable was not found after VSCode package installation.'
-      }
-
-      & $codeExe --install-extension ms-playwright.playwright --force
-      if ($LASTEXITCODE -ne 0) {
-        throw "Failed to install VS Code Playwright extension (exit code $LASTEXITCODE)."
-      }
-  metadata:
-    description: Install VS Code Playwright extension
-
 - type: Microsoft.WinGet/Package
   name: DotnetSdk
   properties:
