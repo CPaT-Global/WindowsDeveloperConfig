@@ -36,10 +36,15 @@ Before picking a setup, prepare your machine once:
 winget configure --enable
 ```
 
-2. Install Git and clone the repo:
+2. Install Git:
 
 ```powershell
 winget install --id Git.Git --source winget --accept-source-agreements --accept-package-agreements
+```
+
+3. Clone the repo:
+
+```powershell
 git clone https://github.com/CPaT-Global/WindowsDeveloperConfig.git
 cd WindowsDeveloperConfig
 ```
