@@ -55,7 +55,9 @@ cd WindowsDeveloperConfig
 > ```powershell
 > # x64:
 > winget install Microsoft.VCRedist.2015+.x64
+>```
 >
+> ```powershell
 > # ARM64:
 > winget install Microsoft.VCRedist.2015+.arm64
 > ```
