@@ -24,7 +24,13 @@ winget configure -f dev-config.winget --accept-configuration-agreements --disabl
 
 This profile keeps the core desktop and developer tooling setup from CPaT Dev Config, including UI/OS hardening and common developer apps, while avoiding container and Linux subsystem dependencies that many QA personas do not require.
 
+It also installs Bun (`Oven-sh.Bun`) alongside Node.js LTS and glow (`charmbracelet.glow`) for rendering markdown in the terminal.
+
+The PowerShell 7 profile gets a marked helper-function block defining `ll` (`Get-ChildItem -Force @args`).
+
 It also preps Playwright QA workflows by installing the VS Code Playwright extension and bootstrapping Playwright Chromium.
+
+`VSCodeExtensions` installs the baseline extension set: GitHub Pull Requests, Aspire, Containers, C# Dev Kit, C#, .NET Install Tool, Playwright, and Dev Containers.
 
 ## Notes
 

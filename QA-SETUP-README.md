@@ -40,11 +40,13 @@ What this gives you:
 - VS Code
 - Git and TortoiseGit
 - Node.js LTS
+- Bun
 - Python
 - .NET 10 SDK
 - VS Code Playwright extension
 - Playwright CLI + Chromium browser bootstrap
 - Copilot CLI profile plumbing in terminal
+- glow (terminal markdown renderer)
 
 Checkpoint:
 - `git --version` works

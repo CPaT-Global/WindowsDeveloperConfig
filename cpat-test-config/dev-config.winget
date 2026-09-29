@@ -755,54 +755,94 @@ resources:
     description: Ensure VS Code Windows 11 context menu registration is applied
 
 - type: Microsoft.DSC.Transitional/PowerShellScript
-  name: VSCodePlaywrightExtension
+  name: VSCodeExtensions
   dependsOn:
     - VSCode
   properties:
     getScript: |
-      $paths = @(
-        "$env:LOCALAPPDATA\Programs\Microsoft VS Code\Code.exe",
-        "$env:ProgramFiles\Microsoft VS Code\Code.exe",
-        "${env:ProgramFiles(x86)}\Microsoft VS Code\Code.exe"
-      ) | Where-Object { $_ -and (Test-Path $_) }
-      $codeExe = $paths | Select-Object -First 1
+      $extensionIds = @(
+        'github.vscode-pull-request-github',
+        'microsoft-aspire.aspire-vscode',
+        'ms-azuretools.vscode-containers',
+        'ms-dotnettools.csdevkit',
+        'ms-dotnettools.csharp',
+        'ms-dotnettools.vscode-dotnet-runtime',
+        'ms-playwright.playwright',
+        'ms-vscode-remote.remote-containers'
+      )
+
+      $codeExe = @(
+        "$env:LOCALAPPDATA\Programs\Microsoft VS Code\bin\code.cmd",
+        "$env:ProgramFiles\Microsoft VS Code\bin\code.cmd",
+        "${env:ProgramFiles(x86)}\Microsoft VS Code\bin\code.cmd"
+      ) | Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1
+
       if (-not $codeExe) {
-        return @{ installed = $false; reason = 'code.exe not found' }
+        return @{ cliPresent = $false; missing = $extensionIds }
       }
 
-      $extensions = & $codeExe --list-extensions 2>$null
-      $installed = [bool]($extensions | Where-Object { $_.Trim().ToLowerInvariant() -eq 'ms-playwright.playwright' })
-      return @{ installed = $installed }
+      $installed = @(& $codeExe --list-extensions 2>$null | ForEach-Object { $_.Trim().ToLowerInvariant() })
+      $missing = @($extensionIds | Where-Object { $installed -notcontains $_ })
+      return @{ cliPresent = $true; missing = $missing }
     testScript: |
-      $paths = @(
-        "$env:LOCALAPPDATA\Programs\Microsoft VS Code\Code.exe",
-        "$env:ProgramFiles\Microsoft VS Code\Code.exe",
-        "${env:ProgramFiles(x86)}\Microsoft VS Code\Code.exe"
-      ) | Where-Object { $_ -and (Test-Path $_) }
-      $codeExe = $paths | Select-Object -First 1
+      $extensionIds = @(
+        'github.vscode-pull-request-github',
+        'microsoft-aspire.aspire-vscode',
+        'ms-azuretools.vscode-containers',
+        'ms-dotnettools.csdevkit',
+        'ms-dotnettools.csharp',
+        'ms-dotnettools.vscode-dotnet-runtime',
+        'ms-playwright.playwright',
+        'ms-vscode-remote.remote-containers'
+      )
+
+      $codeExe = @(
+        "$env:LOCALAPPDATA\Programs\Microsoft VS Code\bin\code.cmd",
+        "$env:ProgramFiles\Microsoft VS Code\bin\code.cmd",
+        "${env:ProgramFiles(x86)}\Microsoft VS Code\bin\code.cmd"
+      ) | Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1
+
       if (-not $codeExe) { return $false }
 
-      $extensions = & $codeExe --list-extensions 2>$null
-      return [bool]($extensions | Where-Object { $_.Trim().ToLowerInvariant() -eq 'ms-playwright.playwright' })
+      $installed = @(& $codeExe --list-extensions 2>$null | ForEach-Object { $_.Trim().ToLowerInvariant() })
+      return (@($extensionIds | Where-Object { $installed -notcontains $_ }).Count -eq 0)
     setScript: |
       $ErrorActionPreference = 'Stop'
 
-      $paths = @(
-        "$env:LOCALAPPDATA\Programs\Microsoft VS Code\Code.exe",
-        "$env:ProgramFiles\Microsoft VS Code\Code.exe",
-        "${env:ProgramFiles(x86)}\Microsoft VS Code\Code.exe"
-      ) | Where-Object { $_ -and (Test-Path $_) }
-      $codeExe = $paths | Select-Object -First 1
+      $extensionIds = @(
+        'github.vscode-pull-request-github',
+        'microsoft-aspire.aspire-vscode',
+        'ms-azuretools.vscode-containers',
+        'ms-dotnettools.csdevkit',
+        'ms-dotnettools.csharp',
+        'ms-dotnettools.vscode-dotnet-runtime',
+        'ms-playwright.playwright',
+        'ms-vscode-remote.remote-containers'
+      )
+
+      $codeExe = @(
+        "$env:LOCALAPPDATA\Programs\Microsoft VS Code\bin\code.cmd",
+        "$env:ProgramFiles\Microsoft VS Code\bin\code.cmd",
+        "${env:ProgramFiles(x86)}\Microsoft VS Code\bin\code.cmd"
+      ) | Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1
+
       if (-not $codeExe) {
-        throw 'VS Code executable was not found after VSCode package installation.'
+        throw 'VS Code CLI (code.cmd) was not found after VSCode package installation.'
       }
 
-      & $codeExe --install-extension ms-playwright.playwright --force
-      if ($LASTEXITCODE -ne 0) {
-        throw "Failed to install VS Code Playwright extension (exit code $LASTEXITCODE)."
+      $failed = @()
+      foreach ($extensionId in $extensionIds) {
+        & $codeExe --install-extension $extensionId --force
+        if ($LASTEXITCODE -ne 0) {
+          $failed += "$extensionId (exit code $LASTEXITCODE)"
+        }
+      }
+
+      if ($failed.Count -gt 0) {
+        throw "Failed to install VS Code extension(s): $($failed -join ', ')."
       }
   metadata:
-    description: Install VS Code Playwright extension
+    description: Install the baseline VS Code extensions
 
 - type: Microsoft.WinGet/Package
   name: DotnetSdk
@@ -877,6 +917,17 @@ resources:
     installMode: silent
   metadata:
     description: Install Node.js 24 LTS
+    securityContext: elevated
+
+- type: Microsoft.WinGet/Package
+  name: Bun
+  properties:
+    id: Oven-sh.Bun
+    source: winget
+    useLatest: true
+    installMode: silent
+  metadata:
+    description: Install Bun (JavaScript runtime and package manager)
     securityContext: elevated
 
 - type: Microsoft.DSC.Transitional/PowerShellScript
@@ -959,6 +1010,17 @@ resources:
     securityContext: elevated
 
 - type: Microsoft.WinGet/Package
+  name: Glow
+  properties:
+    id: charmbracelet.glow
+    source: winget
+    useLatest: true
+    installMode: silent
+  metadata:
+    description: Install glow (terminal markdown renderer)
+    securityContext: elevated
+
+- type: Microsoft.WinGet/Package
   name: OhMyPosh
   properties:
     id: JanDeDobbeleer.OhMyPosh
@@ -1011,6 +1073,44 @@ resources:
         skipExistingInit: true
   metadata:
     description: Setup OhMyPosh in PowerShell 7
+
+# =============================================================================
+# Add helper functions to the PowerShell 7 profile
+# Appends a marked block to $PROFILE (Documents\PowerShell\Microsoft.PowerShell_profile.ps1)
+# =============================================================================
+- type: Microsoft.DSC.Transitional/PowerShellScript
+  name: PwshProfileFunctions
+  dependsOn:
+    - PowerShell
+  properties:
+    getScript: |
+      $profilePath = Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'PowerShell\Microsoft.PowerShell_profile.ps1'
+      $hasBlock = (Test-Path $profilePath) -and ((Get-Content -LiteralPath $profilePath -Raw) -match '# BEGIN DevConfig helper functions')
+      return @{ profilePath = $profilePath; helpersPresent = $hasBlock }
+    testScript: |
+      $profilePath = Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'PowerShell\Microsoft.PowerShell_profile.ps1'
+      return ((Test-Path $profilePath) -and ((Get-Content -LiteralPath $profilePath -Raw) -match '# BEGIN DevConfig helper functions'))
+    setScript: |
+      $ErrorActionPreference = 'Stop'
+
+      $profilePath = Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'PowerShell\Microsoft.PowerShell_profile.ps1'
+      New-Item -ItemType Directory -Path (Split-Path -Parent $profilePath) -Force | Out-Null
+      if (-not (Test-Path $profilePath)) {
+        New-Item -ItemType File -Path $profilePath -Force | Out-Null
+      }
+
+      $block = @'
+      # BEGIN DevConfig helper functions
+      function ll {
+          Get-ChildItem -Force @args
+      }
+      # END DevConfig helper functions
+      '@
+
+      Add-Content -LiteralPath $profilePath -Value "`r`n$block" -Encoding UTF8
+      Write-Host "Added helper functions to $profilePath" -ForegroundColor Green
+  metadata:
+    description: Add helper functions (ll) to the PowerShell 7 profile
 
 # =============================================================================
 # Add GitHub Copilot profile to Windows Terminal

@@ -103,7 +103,7 @@ The configuration is idempotent, so it is safe to re-run after reboot or at any 
 
 ## What this configures
 
-- **21 apps** via winget (PowerShell 7, Git, TortoiseGit, GitHub CLI, GitHub Copilot CLI, VS Code, .NET SDK 10, Aspire CLI, Bruno, UniGetUI, Python 3.14, UV, Node.js LTS, Docker Desktop, ABP Studio, NVM for Windows, Coreutils for Windows, WireGuard, Windows Application CLI, plus optional Oh My Posh and PowerToys).
+- **29 apps** via winget (PowerShell 7, Git, TortoiseGit, GitHub CLI, GitHub Copilot CLI, VS Code, .NET SDK 10, Aspire CLI, Bruno, UniGetUI, Python 3.14, UV, Node.js LTS, Bun, Docker Desktop, ABP Studio, NVM for Windows, Coreutils for Windows, glow, ripgrep, fd, jq, bat, fzf, git-delta, WireGuard, Windows Application CLI, plus optional Oh My Posh and PowerToys).
 - **WSL + Ubuntu**, installed via 3 transitional script resources that bracket a reboot (Phase 2/3/4 below).
 - **~24 registry settings** for theme/OS, Explorer, Taskbar, Search, Start, Notifications, Edge, Sudo, and the Widget service.
 - **Cascadia Code & Cascadia Mono Nerd Fonts** downloaded from the `microsoft/cascadia-code` GitHub release and registered per-user.
@@ -114,6 +114,8 @@ The configuration is idempotent, so it is safe to re-run after reboot or at any 
   - `SetCascadiaNfAsDefault` — sets `Cascadia Mono NF` as the default font face in Windows Terminal's `settings.json`.
   - `ps7default` — sets PowerShell 7 as Windows Terminal's default profile.
   - `ohMyPoshProfileSet` — adds `oh-my-posh init pwsh | Invoke-Expression` to `$PROFILE` and dot-sources it.
+  - `PwshProfileFunctions` — appends a marked helper-function block (`ll`) to the PowerShell 7 profile.
+  - `VSCodeExtensions` — installs the baseline VS Code extension set via `code --install-extension <id> --force`.
 
 ---
 
@@ -143,17 +145,25 @@ All app resources that need WSL present depend on `InstallUbuntu` so the OS work
 | `TortoiseGit` | `TortoiseGit.TortoiseGit` | Depends on `Git`. |
 | `GitHubCLI` | `GitHub.Cli` | Depends on `Git` + `InstallUbuntu`. |
 | `GitHubCopilot` | `GitHub.Copilot` | Depends on `Git` + `InstallUbuntu`. |
-| `VSCode` | `Microsoft.VisualStudioCode` | |
+| `VSCode` | `Microsoft.VisualStudioCode` | Followed by `VSCodeExtensions`, which installs GitHub Pull Requests, Aspire, Containers, C# Dev Kit, C#, .NET Install Tool, Playwright, and Dev Containers. |
 | `DotnetSdk` | `Microsoft.dotnet.SDK.10` | Pinned to v10. |
 | `Aspire` | `Microsoft.Aspire` | Aspire CLI from winget. |
 | `Bruno` | `Bruno.Bruno` | Bruno API client from winget. |
 | `Python` | `Python.Python.3.14` | Pinned to 3.14. |
 | `UV` | `astral-sh.uv` | |
 | `NodeJS` | `OpenJS.NodeJS.LTS` | Pinned to the LTS line (currently Node 24 LTS). |
+| `Bun` | `Oven-sh.Bun` | Bun JavaScript runtime, bundler, and package manager. |
 | `DockerDesktop` | `Docker.DockerDesktop` | Docker Desktop for local container workflows. |
 | `ABPStudio` | `XP9MGBQV4XPRJD` | ABP Studio from Microsoft Store (`msstore` source). |
 | `nvmForNode` | `CoreyButler.NVMforWindows` | Node version manager for Windows. |
 | `Coreutils` | `Microsoft.Coreutils` | Microsoft-maintained Coreutils for Windows. Command integration is handled by the package itself after install. |
+| `Glow` | `charmbracelet.glow` | Terminal markdown renderer (`glow`) for reading docs in the shell. |
+| `Ripgrep` | `BurntSushi.ripgrep.MSVC` | Fast recursive search (`rg`) for code and text in terminals and scripts. |
+| `FD` | `sharkdp.fd` | Fast and user-friendly file finder (`fd`). |
+| `JQ` | `jqlang.jq` | Command-line JSON processor (`jq`) for scripting and pipelines. |
+| `Bat` | `sharkdp.bat` | Syntax-highlighted `cat` replacement (`bat`). |
+| `FZF` | `junegunn.fzf` | Interactive fuzzy finder (`fzf`) for files, history, and commands. |
+| `GitDelta` | `dandavison.delta` | Side-by-side, syntax-aware pager for `git diff`. |
 | `WireGuard` | `WireGuard.WireGuard` | Installs WireGuard, including the `wg` tooling. |
 | `OhMyPosh` | `JanDeDobbeleer.OhMyPosh` | Marked Optional in the comments. Triggers `ohMyPoshProfileSet`. |
 | `winappCli` | `Microsoft.winappcli` | Windows Application CLI. |
@@ -241,6 +251,7 @@ HKLM policies, applied via `Microsoft.Windows/Registry`:
 | Resource | Type | What it does |
 |----------|------|--------------|
 | `ohMyPoshProfileSet` | `Microsoft.DSC.Transitional/RunCommandOnSet` | Creates `$PROFILE` if missing and appends `oh-my-posh init pwsh | Invoke-Expression` (idempotent — uses `Select-String` to check first), then dot-sources `$PROFILE`. Depends on `OhMyPosh`. |
+| `PwshProfileFunctions` | `Microsoft.DSC.Transitional/PowerShellScript` | Creates `Documents\PowerShell\Microsoft.PowerShell_profile.ps1` if missing and appends a `# BEGIN/END DevConfig helper functions` block defining `ll` (`Get-ChildItem -Force @args`). Idempotent via the marker comment. Depends on `PowerShell`. |
 
 ---
 

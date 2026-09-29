@@ -114,6 +114,16 @@ Full details: [`windows-dev-config/README.md`](./windows-dev-config/README.md).
 
 This WinGet DSC profile mirrors the CPaT Cloud PC baseline with opinionated OS settings and developer tools, including Docker Desktop, ABP Studio, and WSL + Ubuntu (with reboot/resume handling).
 
+To choose either CPaT profile from a single launcher, run:
+
+```powershell
+.\Start-CPaTConfig.ps1
+```
+
+Choose **1** for this development profile or **2** for the QA profile. To skip
+the prompt, use `.\Start-CPaTConfig.ps1 -Profile Dev` or
+`.\Start-CPaTConfig.ps1 -Profile QA`.
+
 ```powershell
 winget configure -f .\cpat-dev-config\dev-config.winget --accept-configuration-agreements --disable-interactivity
 ```
