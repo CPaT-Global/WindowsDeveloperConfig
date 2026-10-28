@@ -124,23 +124,27 @@ Every tool and setting, how to undo them, and troubleshooting: [Windows Dev Conf
 
 *A CPaT-curated full developer workstation profile with Cloud PC parity.*
 
-This WinGet DSC profile mirrors the CPaT Cloud PC baseline with opinionated OS settings and developer tools, including Docker Desktop, ABP Studio, and WSL + Ubuntu (with reboot/resume handling).
+Set up the Microsoft baseline first, then apply CPaT-only additions such as
+Docker Desktop, ABP Studio, WireGuard, and developer tooling.
 
-To choose either CPaT profile from a single launcher, run:
-
-```powershell
-.\Start-CPaTConfig.ps1
-```
-
-Choose **1** for this development profile or **2** for the QA profile. To skip
-the prompt, use `.\Start-CPaTConfig.ps1 -Profile Dev` or
-`.\Start-CPaTConfig.ps1 -Profile QA`.
+**Step 1: Microsoft Full baseline** (pinned, Microsoft-signed):
 
 ```powershell
-winget configure -f .\cpat-dev-config\dev-config.winget --accept-configuration-agreements --disable-interactivity
+.\cpat-dev-config\setup-baseline.ps1
 ```
 
-> ⚠️ **May reboot.** Like the base Windows Dev Config flow, this setup installs WSL platform components and resumes automatically after sign-in.
+> ⚠️ **May reboot.** Save your work. After signing back in, accept Microsoft's
+> resume prompt and let its setup finish before step 2.
+
+**Step 2: CPaT additions:**
+
+```powershell
+.\Start-CPaTConfig.ps1 -Profile Dev
+```
+
+Alternatively, run `.\cpat-dev-config\install.ps1`. The CPaT step does not rerun
+Microsoft setup. Running `.\Start-CPaTConfig.ps1` without a profile still lets you
+choose Dev or QA; QA remains standalone and should not receive the Full baseline.
 
 Full details: [`cpat-dev-config/README.md`](./cpat-dev-config/README.md).
 

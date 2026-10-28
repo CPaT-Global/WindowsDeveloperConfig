@@ -1,7 +1,7 @@
 # Smoke-test probe for the cpat-dev-config user-experience flow.
 #
-# After the master config has been applied, the apps module installs
-# git and TortoiseGit via winget. This probe checks both signals:
+# After the Microsoft baseline and CPaT overlay have been applied, Git
+# comes from Microsoft and TortoiseGit from CPaT. This probe checks both signals:
 # `git --version` exits 0 and TortoiseGit appears in uninstall
 # registry entries. If either check fails, something likely tripped
 # during install and the user should inspect the install transcript.

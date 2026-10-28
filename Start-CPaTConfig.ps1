@@ -4,7 +4,8 @@
 
 .DESCRIPTION
   Prompts for the development or QA workstation profile when -Profile is not
-  supplied, then invokes the corresponding configuration shim.
+  supplied, then invokes the corresponding configuration shim. Development
+  applies CPaT additions after setup-baseline.ps1 has finished; QA is standalone.
 #>
 
 [CmdletBinding()]
@@ -19,7 +20,7 @@ Set-StrictMode -Version Latest
 if (-not $Profile) {
     do {
         Write-Host 'Select a CPaT workstation configuration:'
-        Write-Host '  1. Development (Docker Desktop, ABP Studio, WSL + Ubuntu; may reboot)'
+        Write-Host '  1. Development additions (run Microsoft baseline first; Docker Desktop, ABP Studio)'
         Write-Host '  2. QA (Playwright-focused; no Docker Desktop or WSL)'
         $selection = Read-Host 'Enter 1 or 2'
 
@@ -43,6 +44,9 @@ if (-not (Test-Path -LiteralPath $installer -PathType Leaf)) {
 }
 
 Write-Host "Starting $configName..." -ForegroundColor Cyan
+if ($Profile -eq 'Dev') {
+    Write-Host 'Prerequisite: run .\cpat-dev-config\setup-baseline.ps1 and let Microsoft setup finish first.'
+}
 & $installer
 
 if ($LASTEXITCODE -ne 0) {

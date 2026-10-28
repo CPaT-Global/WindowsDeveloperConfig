@@ -1,21 +1,10 @@
 <#
 .SYNOPSIS
-  Apply the CPaT Dev Config user-experience configuration on Windows.
+  Applies CPaT additions after the Microsoft Windows Dev Config baseline.
 
 .DESCRIPTION
-  Thin CI/dev shim around `dev-config.winget`, a winget DSC configuration
-  that sets up the full CPaT Dev Config developer workstation (apps,
-  distraction-free desktop, taskbar polish, Recall off, dark theme, WSL +
-  Ubuntu).
-
-  The shim only:
-    * applies the DSC config with retry,
-    * rehydrates PATH in the current session,
-    * emits `INSTALL_OK: cpat-dev-config` for the test harness.
-
-  RequireCommands lists `git` because the master config installs it
-  unconditionally; asserting it on PATH catches a clean-install failure
-  early.
+  Run setup-baseline.ps1 first and let Microsoft setup finish, including its
+  reboot/resume. This launcher only applies the company overlay.
 #>
 
 [CmdletBinding()]
@@ -24,7 +13,46 @@ param()
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
-& (Join-Path $PSScriptRoot '..\Workloads\_common\apply-configuration.ps1') `
-    -Id              'cpat-dev-config' `
-    -ConfigFile      (Join-Path $PSScriptRoot 'dev-config.winget') `
-    -RequireCommands @('git')
+function Test-CPaTAdministrator {
+    $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
+    $principal = [Security.Principal.WindowsPrincipal]::new($identity)
+    return $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+}
+
+function Invoke-CPaTDevConfig {
+    param([string] $ConfigRoot = $PSScriptRoot)
+
+    if (-not (Test-CPaTAdministrator)) {
+        $shell = Join-Path $PSHOME $(if ($PSVersionTable.PSEdition -eq 'Core') { 'pwsh.exe' } else { 'powershell.exe' })
+        $installer = Join-Path $ConfigRoot 'install.ps1'
+        $process = Start-Process -FilePath $shell -ArgumentList @('-NoProfile', '-File', "`"$installer`"") -Verb RunAs -Wait -PassThru
+        if ($process.ExitCode -ne 0) {
+            throw "CPaT Dev Config exited with code $($process.ExitCode)."
+        }
+        return
+    }
+
+    $resume = Get-ScheduledTask -TaskName 'WindowsDevConfigResume' -ErrorAction SilentlyContinue
+    if ($resume) {
+        throw 'Microsoft setup has a pending reboot/resume. Let it finish before running the CPaT overlay.'
+    }
+
+    $common = Join-Path $ConfigRoot '..\Workloads\_common'
+    & (Join-Path $common 'refresh-path.ps1')
+    foreach ($command in @('git', 'code', 'dotnet', 'npm', 'pwsh')) {
+        if (-not (Get-Command $command -ErrorAction SilentlyContinue)) {
+            throw "Baseline tool '$command' was not found. Run cpat-dev-config\setup-baseline.ps1 and let Microsoft setup finish first."
+        }
+    }
+
+    Write-Host 'Applying CPaT-only additions to the Microsoft baseline.' -ForegroundColor Cyan
+    & (Join-Path $common 'apply-configuration.ps1') `
+        -Id 'cpat-dev-config' `
+        -ConfigFile (Join-Path $ConfigRoot 'dev-config.winget') `
+        -RequireCommands @('git')
+}
+
+if ($MyInvocation.InvocationName -ne '.') {
+    Invoke-CPaTDevConfig
+    exit 0
+}

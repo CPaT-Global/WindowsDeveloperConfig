@@ -80,6 +80,7 @@ Command Palette extension.
 | WinAppCLI         | ✅ automated   | Developer Mode + `Microsoft.DotNet.SDK.10` + `Microsoft.WinAppCli` |
 | WinUI 3           | 🙋 manual     | PowerShell-native one-liner: Developer Mode, PowerShell 7, `Microsoft.DotNet.SDK.10`, `Microsoft.WinAppCli`, Visual Studio Community 2026 with the WinUI workloads, and the WinUI `dotnet new` templates ([`workloads/winui.ps1`](../windows-dev-config/workloads/winui.ps1)) |
 | Windows Dev Config | 🙋 manual     | PowerShell setup for developer tools, Windows settings, fonts, Terminal, and WSL + Ubuntu (see [`windows-dev-config/README.md`](../windows-dev-config/README.md), contributor internals in [`windows-dev-config.md`](./windows-dev-config.md)) |
+| CPaT Dev Config | 🙋 manual | Two steps: pinned Microsoft-signed Full baseline, then CPaT-only apps and settings (see [`cpat-dev-config/README.md`](../cpat-dev-config/README.md)) |
 | NVIDIA CUDA       | 🙋 manual     | `Nvidia.CUDA` x64 or checksum/signature-pinned 13.4 ARM64 preview + MSVC + GPU kernel |
 | AMD ROCm / HIP    | 🙋 manual     | ROCm Core SDK 10.0 on supported Windows x64 AMD GPUs + compiled HIP kernel |
 | Intel AI          | 🙋 manual     | OpenVINO device inference; optional oneAPI/SYCL toolkit and GPU kernel |
@@ -92,6 +93,23 @@ Command Palette extension.
 
 See [`manifest.yml`](../manifest.yml) for the canonical declarative
 list (paths, build/run commands, onboarding URLs).
+
+### CPaT developer overlay
+
+Run `.\cpat-dev-config\setup-baseline.ps1` from the repository root first. It
+downloads and verifies Microsoft's bootstrap at a pinned published payload
+commit, then runs the Full baseline with Microsoft's signature checks intact.
+Wait for its reboot/resume and setup to finish before running
+`.\Start-CPaTConfig.ps1 -Profile Dev` (or `.\cpat-dev-config\install.ps1`).
+
+The CPaT installer only applies `dev-config.winget`, which contains company
+additions rather than a duplicate baseline. Its manifest entry intentionally
+omits `configuration` so Command Palette runs the installer and its prerequisite
+checks instead of applying the overlay directly. The QA profile stays standalone.
+Edit `src/cpat-dev-config/` and mirror changes into `cpat-dev-config/`.
+When updating the baseline pin in `setup-baseline.ps1`, use the payload commit
+in Microsoft's published `setup-full.ps1` and test the signed release first.
+The non-installing regression suite is `src/tests/cpat-dev-config/unit.ps1`.
 
 ## Command Palette extension
 
