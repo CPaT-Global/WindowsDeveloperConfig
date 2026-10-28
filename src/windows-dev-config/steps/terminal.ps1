@@ -1,0 +1,97 @@
+<#
+.SYNOPSIS
+  Dark theme and Windows Terminal profile defaults.
+#>
+
+$ErrorActionPreference = 'Stop'
+Set-StrictMode -Version Latest
+
+$Script:DevConfigThemeKey = 'HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize'
+$Script:DevConfigThemeSettings = @(
+    @{ Name = 'AppsTheme'; KeyPath = $Script:DevConfigThemeKey; ValueName = 'AppsUseLightTheme'; Value = 0; ResetValue = 1 }
+    @{ Name = 'SystemTheme'; KeyPath = $Script:DevConfigThemeKey; ValueName = 'SystemUsesLightTheme'; Value = 0; ResetValue = 1 }
+)
+
+function Test-DevConfigDarkThemeSet {
+    foreach ($setting in $Script:DevConfigThemeSettings) {
+        if (-not (Test-DevConfigRegistryValue -KeyPath $setting.KeyPath -ValueName $setting.ValueName -Value $setting.Value)) {
+            return $false
+        }
+    }
+    return $true
+}
+
+function Set-DevConfigDarkTheme {
+    foreach ($setting in $Script:DevConfigThemeSettings) {
+        Set-DevConfigRegistryValue -KeyPath $setting.KeyPath -ValueName $setting.ValueName -Value $setting.Value
+    }
+}
+
+function Test-DevConfigPs7DefaultProfile {
+    $path = Get-DevConfigTerminalSettingsPath
+    if (-not $path) {
+        # Missing settings still need configuration when Terminal is installed but has not launched.
+        return (-not (Get-DevConfigTerminalSettingsTarget))
+    }
+
+    $settings = Read-DevConfigTerminalSettings -Path $path
+    $current  = Get-DevConfigJsonValue -Object $settings -Path 'defaultProfile'
+    if (-not $current) {
+        return $false
+    }
+    if ($current -eq $Script:DevConfigPs7ProfileName) {
+        return $true
+    }
+
+    $ps7 = Find-DevConfigPs7Profile -Settings $settings
+    return [bool]($ps7 -and $current -eq (Get-DevConfigJsonValue -Object $ps7 -Path 'guid'))
+}
+
+function Set-DevConfigPs7DefaultProfile {
+    $path = Get-DevConfigTerminalSettingsTarget
+    if (-not $path) {
+        throw 'Windows Terminal is not installed, so its default profile cannot be set.'
+    }
+
+    $settings = Read-DevConfigTerminalSettings -Path $path
+    $ps7      = Find-DevConfigPs7Profile -Settings $settings
+
+    # The documented profile name works before Terminal has listed the PowerShell 7 profile.
+    $profileRef = if ($ps7) {
+        Get-DevConfigJsonValue -Object $ps7 -Path 'guid'
+    } else {
+        $Script:DevConfigPs7ProfileName
+    }
+
+    Set-DevConfigJsonProperty -Object $settings -Name 'defaultProfile' -Value $profileRef
+    Save-DevConfigTerminalSettings -Path $path -Settings $settings
+    Write-Host "Set the Windows Terminal default profile to '$profileRef'."
+}
+
+function Invoke-TerminalPhase {
+    if ($Script:DevConfigAction -eq 'Uninstall') {
+        $steps = @(
+            foreach ($setting in $Script:DevConfigThemeSettings) {
+                New-DevConfigRegistryStep -Setting $setting -Reset
+            }
+            New-DevConfigStep -Name 'TerminalReset' -Description 'Remove Terminal defaults and PowerShell, Copilot, and Ubuntu profiles' -BestEffort `
+                -Check { param($DistributionName) Reset-DevConfigTerminal -DistributionName $DistributionName -CheckOnly } `
+                -Apply { param($DistributionName) Reset-DevConfigTerminal -DistributionName $DistributionName } `
+                -ArgumentList @($Script:DevConfigWslDistributionName)
+        )
+        Invoke-DevConfigSteps -Steps $steps
+        return
+    }
+
+    # These user preferences are best-effort so later setup phases can continue.
+    $steps = @(
+        New-DevConfigStep -Name 'DarkTheme' -Description 'Force dark app/system theme' -BestEffort `
+            -Check { Test-DevConfigDarkThemeSet } `
+            -Apply { Set-DevConfigDarkTheme }
+        New-DevConfigStep -Name 'Ps7DefaultProfile' -Description 'Set PowerShell 7 as the default Windows Terminal profile' -BestEffort `
+            -Check { Test-DevConfigPs7DefaultProfile } `
+            -Apply { Set-DevConfigPs7DefaultProfile }
+    )
+
+    Invoke-DevConfigSteps -Steps $steps
+}

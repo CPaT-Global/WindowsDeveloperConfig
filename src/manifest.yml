@@ -8,8 +8,9 @@
 #     build + run a canonical "hello world" to prove the install worked
 #     (consumed by CI and the build-run-diff harness).
 #
-# Adding a new flow = one entry here + one configuration.winget per OS
-# + one install.ps1 shim per OS + one hello-world file under tests/<id>/.
+# Adding a new flow = one entry here + an install.ps1 entry point per OS
+# + configuration.winget when declarative DSC is appropriate + a smoke probe
+# under tests/<id>/.
 # No workflow edits required.
 #
 # Schema (per flow):
@@ -23,6 +24,8 @@
 #                                            (typescript, python, go, rust, ...)
 #                     - "desktop"          : a desktop framework on top of a
 #                                            language (winforms, winui, ...)
+#                     - "ai"               : local AI runtimes and
+#                                            hardware-specific accelerators
 #                     - "user-experience"  : OS-feel / shell flows that
 #                                            shape the desktop rather than
 #                                            install dev toolchains
@@ -60,8 +63,9 @@
 #                     CI runs this from the `src/` directory, while CmdPal
 #                     assumes the extension's root is the repo root.
 #     configuration:  (optional) path to winget DSC configuration.winget the
-#                     extension applies via `winget configure`. Defaults to
-#                     "<dir of install>/configuration.winget" when omitted.
+#                     extension applies via `winget configure`. When omitted,
+#                     the Command Palette extension launches `install` directly.
+#                     PowerShell-native flows (including AI workloads) omit it.
 #     build:          shell command to build the hello world (run from repo
 #                     root). "" to skip.
 #     run:            shell command whose stdout is compared to "expected"
@@ -86,22 +90,6 @@ flows:
       expected: src/tests/typescript/expected.txt
       version: "node --version; tsc --version"
 
-  - id: php
-    name: PHP
-    description: PHP runtime and CLI
-    category: languages
-    tags: [php, web, scripting]
-    icon: 🐘
-    onboardingUrl: https://www.php.net/manual/en/install.windows.php
-    os: [windows]
-    windows:
-      install: Workloads/php/install.ps1
-      configuration: Workloads/php/configuration.winget
-      build: ""
-      run: php src/tests/php/hello.php
-      expected: src/tests/php/expected.txt
-      version: "php --version"
-
   - id: winforms
     name: WinForms
     description: .NET SDK with Windows Forms desktop workload
@@ -109,16 +97,18 @@ flows:
     tags: [dotnet, csharp, winforms, windows, desktop]
     icon: 🪟
     onboardingUrl: https://learn.microsoft.com/dotnet/desktop/winforms/overview/
-    # Excluded from the automated matrix because the install pulls the .NET
-    # desktop workload (effectively the Visual Studio build tools), which is
-    # multi-GB and dominates the CI minute budget. Verified working locally
-    # and in a one-off CI run; humans can still execute the flow on demand.
+    # PowerShell-native flow: Workloads/winforms/setup.ps1 runs the Windows Dev
+    # Config engine (windows-dev-config/workloads/winforms.ps1). There is no
+    # configuration.winget, so the `configuration` key is omitted. Still
+    # manual_test: true because the install pulls the .NET desktop workload
+    # (effectively the Visual Studio build tools), which is multi-GB and
+    # dominates the CI minute budget (same reasoning as before), and because
+    # the engine entry point needs a signed release cycle + elevation.
     manual_test: true
     os: [windows]
     windows:
-      install: Workloads/winforms/install.ps1
-      configuration: Workloads/winforms/configuration.winget
-      build: dotnet build src/tests/winforms/hello.csproj -c Release -v q --nologo -o tests/winforms/bin
+      install: Workloads/winforms/setup.ps1
+      build: dotnet build src/tests/winforms/hello.csproj -c Release -v q --nologo -o src/tests/winforms/bin
       run: src\tests\winforms\bin\hello.exe
       expected: src/tests/winforms/expected.txt
       version: "dotnet --version"
@@ -130,18 +120,41 @@ flows:
     tags: [dotnet, csharp, winui, windows, desktop, windowsappsdk]
     icon: 🪟
     onboardingUrl: https://learn.microsoft.com/windows/apps/winui/winui3/
-    # WinUI hello world needs an interactive desktop session to actually run;
-    # CI only validates that the configuration applies cleanly. The build/run
-    # fields stay populated so a human can execute the flow locally.
+    # PowerShell-native flow: Workloads/winui/setup.ps1 runs the Windows Dev
+    # Config engine (windows-dev-config/workloads/winui.ps1). There is no
+    # configuration.winget, so the `configuration` key is omitted (same shape
+    # as calm-os). WinUI hello world needs an interactive desktop session to
+    # actually run; the build/run fields stay populated so a human can execute
+    # the flow locally.
     manual_test: true
     os: [windows]
     windows:
-      install: Workloads/winui/install.ps1
-      configuration: Workloads/winui/configuration.winget
+      install: Workloads/winui/setup.ps1
       build: dotnet build src/tests/winui/hello.csproj -c Release -v q --nologo -o src/tests/winui/bin
       run: src\tests\winui\bin\hello.exe
       expected: src/tests/winui/expected.txt
       version: "dotnet --version"
+
+  - id: winappcli
+    name: WinAppCLI
+    description: Developer Mode + .NET SDK 10 + Windows App Development CLI
+    category: desktop
+    tags: [dotnet, csharp, winapp, winappcli, winui, windows, desktop]
+    icon: 🪟
+    onboardingUrl: https://learn.microsoft.com/windows/apps/dev-tools/winapp-cli/
+    # PowerShell-native flow: Workloads/winappcli/setup.ps1 runs the Windows Dev
+    # Config engine (windows-dev-config/workloads/winappcli.ps1). There is no
+    # configuration.winget, so the `configuration` key is omitted (same shape
+    # as winui). The engine entry point needs a signed release cycle and
+    # elevation, so it can't run unattended in the automated CI matrix.
+    manual_test: true
+    os: [windows]
+    windows:
+      install: Workloads/winappcli/setup.ps1
+      build: ""
+      run: pwsh -NoProfile -File src/tests/winappcli/probe.ps1
+      expected: src/tests/winappcli/expected.txt
+      version: "dotnet --version; winapp --version"
 
   - id: dotnet
     name: .NET
@@ -150,10 +163,15 @@ flows:
     tags: [dotnet, csharp, fsharp, net]
     icon: 🟣
     onboardingUrl: https://learn.microsoft.com/dotnet/core/install/windows
+    # PowerShell-native flow: Workloads/dotnet/setup.ps1 runs the Windows Dev
+    # Config engine (windows-dev-config/workloads/dotnet.ps1). There is no
+    # configuration.winget, so the `configuration` key is omitted (same shape
+    # as winui). manual_test because the engine entry point needs a signed
+    # release cycle and elevation, which the automated matrix can't provide.
+    manual_test: true
     os: [windows]
     windows:
-      install: Workloads/dotnet/install.ps1
-      configuration: Workloads/dotnet/configuration.winget
+      install: Workloads/dotnet/setup.ps1
       build: dotnet build src/tests/dotnet/hello.csproj -c Release -v q --nologo -o src/tests/dotnet/bin
       run: src\tests\dotnet\bin\hello.exe
       expected: src/tests/dotnet/expected.txt
@@ -166,10 +184,15 @@ flows:
     tags: [go, golang]
     icon: 🐹
     onboardingUrl: https://go.dev/doc/install
+    # PowerShell-native flow: Workloads/go/setup.ps1 runs the Windows Dev Config engine
+    # (windows-dev-config/workloads/go.ps1). There is no configuration.winget, so the
+    # configuration key is omitted (same shape as winui). manual_test because the engine
+    # entry point needs a signed release cycle and elevation, which the automated matrix
+    # can't provide.
+    manual_test: true
     os: [windows]
     windows:
-      install: Workloads/go/install.ps1
-      configuration: Workloads/go/configuration.winget
+      install: Workloads/go/setup.ps1
       build: ""
       run: go run src/tests/go/hello.go
       expected: src/tests/go/expected.txt
@@ -198,10 +221,17 @@ flows:
     tags: [rust, cargo, rustc, rustup]
     icon: 🦀
     onboardingUrl: https://www.rust-lang.org/tools/install
+    # PowerShell-native flow: Workloads/rust/setup.ps1 runs the Windows Dev
+    # Config engine (windows-dev-config/workloads/rust.ps1). There is no
+    # configuration.winget, so the `configuration` key is omitted (same shape
+    # as winui). manual_test because the install adds the Desktop development
+    # with C++ workload to Visual Studio Community (multi-GB, same as
+    # winforms), and the engine entry point needs a signed release cycle and
+    # elevation, which the automated matrix can't provide.
+    manual_test: true
     os: [windows]
     windows:
-      install: Workloads/rust/install.ps1
-      configuration: Workloads/rust/configuration.winget
+      install: Workloads/rust/setup.ps1
       build: cargo build --release --manifest-path src/tests/rust/Cargo.toml --quiet
       run: src\tests\rust\target\release\hello.exe
       expected: src/tests/rust/expected.txt
@@ -222,6 +252,134 @@ flows:
       run: python src/tests/python/hello.py
       expected: src/tests/python/expected.txt
       version: "python --version; uv --version"
+
+  - id: cuda
+    name: NVIDIA CUDA
+    description: CUDA Toolkit plus MSVC with a compiled GPU-kernel readiness test
+    category: ai
+    tags: [ai, cuda, nvidia, gpu, machine-learning]
+    icon: 🟩
+    onboardingUrl: https://docs.nvidia.com/cuda/cuda-installation-guide-microsoft-windows/
+    manual_test: true
+    os: [windows]
+    windows:
+      install: Workloads/cuda/install.ps1
+      build: ""
+      run: pwsh -NoProfile -File src/tests/cuda/probe.ps1
+      expected: src/tests/cuda/expected.txt
+      version: "nvcc --version; nvidia-smi"
+
+  - id: foundry
+    name: Foundry Local
+    description: Local model runtime plus Qwen3-0.6B acquisition and inference
+    category: ai
+    tags: [ai, foundry, winml, local-models, inference]
+    icon: 🧠
+    onboardingUrl: https://learn.microsoft.com/windows/ai/foundry-local/get-started
+    manual_test: true
+    os: [windows]
+    windows:
+      install: Workloads/foundry/install.ps1
+      build: ""
+      run: pwsh -NoProfile -File src/tests/foundry/probe.ps1
+      expected: src/tests/foundry/expected.txt
+      version: "foundry --version; foundry server status"
+
+  - id: pytorch
+    name: PyTorch
+    description: Self-contained PyTorch for CPU, NVIDIA CUDA, AMD ROCm, or Intel XPU
+    category: ai
+    tags: [ai, pytorch, python, nvidia, cuda, amd, rocm, hip, intel, xpu, triton, machine-learning]
+    icon: 🔥
+    onboardingUrl: https://pytorch.org/get-started/locally/
+    manual_test: true
+    os: [windows]
+    windows:
+      install: Workloads/pytorch/install.ps1
+      build: ""
+      run: pwsh -NoProfile -File src/tests/pytorch/probe.ps1
+      expected: src/tests/pytorch/expected.txt
+      version: "& \"$env:LOCALAPPDATA\\DevConfig\\pytorch\\.venv\\Scripts\\python.exe\" -c \"import torch; print(torch.__version__)\""
+
+  - id: llama.cpp
+    name: llama.cpp
+    description: Hardware-selected llama.cpp CUDA, ROCm, SYCL, OpenVINO, Vulkan, OpenCL, or CPU runtime
+    category: ai
+    tags: [ai, llama, gguf, inference, local-models, nvidia, cuda, amd, rocm, intel, sycl, openvino, vulkan, qualcomm, adreno, opencl, cpu]
+    icon: 🦙
+    onboardingUrl: https://github.com/ggml-org/llama.cpp/blob/master/docs/install.md
+    manual_test: true
+    os: [windows]
+    windows:
+      install: Workloads/llama.cpp/install.ps1
+      build: ""
+      run: pwsh -NoProfile -File src/tests/llama.cpp/probe.ps1
+      expected: src/tests/llama.cpp/expected.txt
+      version: "llama-cli --version"
+
+  - id: ollama
+    name: Ollama
+    description: Installed x64 or managed native ARM64 Ollama runtime plus qwen3:0.6b inference
+    category: ai
+    tags: [ai, ollama, local-models, inference, api]
+    icon: 🦙
+    onboardingUrl: https://docs.ollama.com/windows
+    manual_test: true
+    os: [windows]
+    windows:
+      install: Workloads/ollama/install.ps1
+      build: ""
+      run: pwsh -NoProfile -File src/tests/ollama/probe.ps1
+      expected: src/tests/ollama/expected.txt
+      version: "ollama --version"
+
+  - id: rocm
+    name: AMD ROCm / HIP
+    description: AMD ROCm Core SDK with a compiled HIP GPU-kernel acceptance test
+    category: ai
+    tags: [ai, amd, rocm, hip, gpu, machine-learning]
+    icon: 🔴
+    onboardingUrl: https://rocm.docs.amd.com/projects/install-on-windows/en/latest/
+    manual_test: true
+    os: [windows]
+    windows:
+      install: Workloads/rocm/install.ps1
+      build: ""
+      run: pwsh -NoProfile -File src/tests/rocm/probe.ps1
+      expected: src/tests/rocm/expected.txt
+      version: "& \"$env:LOCALAPPDATA\\DevConfig\\rocm\\.venv\\Scripts\\hipcc.exe\" --version"
+
+  - id: intel-ai
+    name: Intel AI
+    description: OpenVINO device inference with optional oneAPI/SYCL GPU development
+    category: ai
+    tags: [ai, intel, openvino, oneapi, sycl, gpu, npu]
+    icon: 🔵
+    onboardingUrl: https://docs.openvino.ai/
+    manual_test: true
+    os: [windows]
+    windows:
+      install: Workloads/intel-ai/install.ps1
+      build: ""
+      run: pwsh -NoProfile -File src/tests/intel-ai/probe.ps1
+      expected: src/tests/intel-ai/expected.txt
+      version: "& \"$env:LOCALAPPDATA\\DevConfig\\intel-ai\\openvino\\.venv\\Scripts\\python.exe\" -c \"import openvino; print(openvino.__version__)\""
+
+  - id: local-ai
+    name: Local AI development
+    description: Scenario entry point for hardware detection, contained PyTorch/Triton, and an optional local model runtime
+    category: scenarios
+    tags: [ai, scenario, pytorch, triton, local-models, cuda, rocm, xpu]
+    icon: 🤖
+    onboardingUrl: https://learn.microsoft.com/windows/ai/
+    manual_test: true
+    os: [windows]
+    windows:
+      install: Workloads/local-ai/install.ps1
+      build: ""
+      run: pwsh -NoProfile -File src/tests/pytorch/probe.ps1
+      expected: src/tests/local-ai/expected.txt
+      version: "& \"$env:LOCALAPPDATA\\DevConfig\\pytorch\\.venv\\Scripts\\python.exe\" -c \"import torch; print(torch.__version__)\""
 
   - id: sql
     name: Lightweight SQL Developer
@@ -268,6 +426,10 @@ flows:
     # The bootstrap runs entirely inside a WSL distro; cannot be tested on
     # headless CI without a distro present. manual_test keeps it out of the
     # automated matrix while still surfacing it in CmdPal.
+    # wsl-comfort/setup.ps1 is the one-line entry point
+    # (irm https://aka.ms/devconfig/wsl-comfort/setup.ps1 | iex); it verifies
+    # and stages the signed copy, then runs install.ps1, which stays the
+    # entry point for a clone.
     manual_test: true
     os: [windows]
     windows:
@@ -279,21 +441,21 @@ flows:
 
   - id: calm-os
     name: Calm OS
-    description: Distraction-free dev workstation — apps + OS settings + WSL, all in one DSC
+    description: Distraction-free dev workstation — apps + OS settings + WSL, in one PowerShell run
     category: user-experience
     tags: [user-experience, calm-os, distraction-free, taskbar, wsl, ubuntu]
     icon: 🧘
     onboardingUrl: https://dev.windows.com
-    # Heavy machine-state changes (Sudo, Recall off, Click To Do off, WSL +
-    # Ubuntu install with a forced reboot, etc.) — keep out of the automated
-    # matrix. The probe under src/tests/calm-os/probe.ps1 is for a human running
-    # the flow locally; it asserts that `git` resolves on PATH after the
-    # install (the apps module's first dep) as a fast smoke signal.
+    # PowerShell-native flow: there is no configuration.winget, so the
+    # `configuration` key is omitted (same shape as comfort-shell).
+    # Heavy machine-state changes (Sudo, Developer Mode, WSL + Ubuntu with a
+    # forced reboot) keep it out of the automated matrix. The probe under
+    # src/tests/calm-os/probe.ps1 is for a human running the flow locally; it
+    # asserts that `git` resolves on PATH afterwards as a fast smoke signal.
     manual_test: true
     os: [windows]
     windows:
-      install: windows-dev-config/install.ps1
-      configuration: windows-dev-config/dev-config.winget
+      install: windows-dev-config/dev-config.ps1
       build: ""
       run: pwsh -NoProfile -File src/tests/calm-os/probe.ps1
       expected: src/tests/calm-os/expected.txt
