@@ -18,16 +18,6 @@ resources:
   metadata:
     description: Enable Git integration in File Explorer
     securityContext: elevated
-- type: Microsoft.Windows/Registry
-  name: TaskbarHideWidgets
-  properties:
-    keyPath: HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced
-    valueName: TaskbarDa
-    valueData:
-      DWord: 0
-  metadata:
-    description: Hide Widgets button on the taskbar
-    securityContext: elevated
 - type: Microsoft.WinGet/Package
   name: TortoiseGit
   properties:
@@ -410,15 +400,6 @@ resources:
   metadata:
     description: Install WireGuard (wg)
     securityContext: elevated
-- type: Microsoft.Windows/Registry
-  name: PowerToysAOT
-  properties:
-    keyPath: HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Notifications\Settings\PowerToys
-    valueName: Enabled
-    valueData:
-      DWord: 0
-  metadata:
-    description: Disable PowerToys AOT notifications
 - type: Microsoft.DSC.Transitional/PowerShellScript
   name: PwshProfileFunctions
   properties:

@@ -70,13 +70,18 @@ The DSC file alone is an overlay, not a complete workstation setup. Prefer
 | VS Code | Windows 11 Explorer context menu registration; GitHub Pull Requests, Aspire, Containers, C# Dev Kit, C#, .NET Install Tool, Playwright, and Dev Containers extensions |
 | Playwright | Global Playwright CLI and Chromium browser |
 | PowerShell | Existing managed `ll` helper function |
-| Windows settings | Explorer Git integration, hidden Widgets taskbar button, PowerToys notification setting |
+| Windows settings | Explorer Git integration |
 
 Microsoft supplies PowerShell 7, Git, GitHub CLI, Azure CLI, Copilot, VS Code,
 .NET SDK 10, Python 3.14 + uv, Node.js LTS + nvm, Coreutils, Windows App CLI,
 PowerToys, and the shared workstation configuration. Its newer Explorer and
 taskbar registry paths, profile management, Terminal setup, and WSL resume logic
-are used without CPaT overrides.
+are used without CPaT overrides. Microsoft also owns disabling Widgets and
+PowerToys always-on-top notifications; the overlay does not repeat those settings.
+
+The VS Code resources below the package list configure CPaT extensions and
+Explorer integration; they do not reinstall VS Code. Likewise, the `ll` helper
+adds a CPaT function without repeating Microsoft's Oh My Posh initialization.
 
 ## Maintenance and signing
 
