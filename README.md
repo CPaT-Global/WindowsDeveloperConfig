@@ -11,6 +11,10 @@
 <h3 align="center">
   <a href="#%EF%B8%8F-windows-dev-config">Windows Dev Config</a>
   <span> · </span>
+  <a href="#-cpat-dev-config">CPaT Dev Config</a>
+  <span> · </span>
+  <a href="#-cpat-test-config">CPaT Test Config</a>
+  <span> · </span>
   <a href="#-wsl-comfort">WSL Comfort</a>
   <span> · </span>
   <a href="#-workloads">Workloads</a>
@@ -24,14 +28,60 @@
 
 Set up a new Windows dev box in minutes, not hours. Pick a setup, run one command, get back to building. Everything here is safe to re-run.
 
+## 🛠️ Prepare your machine
+
+Before running a CPaT profile or a clone-based WinGet workload, prepare your machine once. The one-line Windows Dev Config and WSL Comfort launchers below do not require these steps.
+
+1. Enable [`winget configure`](https://learn.microsoft.com/en-us/windows/package-manager/winget/configure):
+
+```powershell
+winget configure --enable
+```
+
+2. Install Git:
+
+```powershell
+winget install --id Git.Git --source winget --accept-source-agreements --accept-package-agreements
+```
+
+3. Clone the repo:
+
+```powershell
+git clone https://github.com/CPaT-Global/WindowsDeveloperConfig.git
+cd WindowsDeveloperConfig
+```
+
+> [!IMPORTANT]
+> If `winget` is being invoked from a **non-elevated** environment, the Microsoft Visual C++ Redistributable ([aka.ms/vcredist](https://aka.ms/vcredist)) must also be installed — without it `winget configure` fails with an internal error. Install it once with the command for your machine's architecture:
+>
+> ```powershell
+> # x64:
+> winget install Microsoft.VCRedist.2015+.x64
+>```
+>
+> ```powershell
+> # ARM64:
+> winget install Microsoft.VCRedist.2015+.arm64
+> ```
+
+If that fails or `winget configure` is still not recognized, see [Troubleshooting](#-troubleshooting).
+
+<br/>
+
 ## 🎯 Pick your setup
+
+Pick the setup that matches what you want:
 
 | You want... | Go to |
 | --- | --- |
-| A full dev workstation: tools, Windows settings, WSL, and terminal. One command, one restart. | [Windows Dev Config](#%EF%B8%8F-windows-dev-config) |
-| A nicer WSL shell: zsh/bash, Starship, CLI tools, and a themed terminal profile. | [WSL Comfort](#-wsl-comfort) |
-| One language or toolchain. | [Workloads](#-workloads) |
+| A complete dev workstation: tools, OS settings, WSL, and terminal. One command, may reboot. | [Windows Dev Config](#%EF%B8%8F-windows-dev-config) |
+| A CPaT-focused developer workstation with Cloud PC parity, including Docker Desktop, ABP Studio, and WSL + Ubuntu. | [CPaT Dev Config](#-cpat-dev-config) |
+| A CPaT-focused QA workstation optimized for Playwright and desktop tooling, without WSL, Docker Desktop, or ABP Studio. | [CPaT Test Config](#-cpat-test-config) |
+| A polished WSL shell: zsh/bash, Starship, CLI tools, and a themed terminal profile. Interactive or unattended. | [WSL Comfort](#-wsl-comfort) |
+| A single language toolchain or desktop workload. | [Workloads](#-workloads) |
 | Local AI: PyTorch for your GPU, plus Ollama, llama.cpp, or Foundry Local. | [AI tooling](#-ai-tooling) |
+
+<br/>
 
 ## 🖥️ Windows Dev Config
 
@@ -67,6 +117,50 @@ irm https://aka.ms/devconfig/full/setup.ps1 | iex
 > ⚠️ **Heads up — it may restart your PC.** WSL needs virtualization turned on, so save your work first. Setup picks up where it left off after the reboot.
 
 Every tool and setting, how to undo them, and troubleshooting: [Windows Dev Config README](./src/windows-dev-config/README.md).
+
+<br/>
+
+## 🧰 CPaT Dev Config
+
+*A CPaT-curated full developer workstation profile with Cloud PC parity.*
+
+Set up the Microsoft baseline first, then apply CPaT-only additions such as
+Docker Desktop, ABP Studio, WireGuard, and developer tooling.
+
+**Step 1: Microsoft Full baseline** (pinned, Microsoft-signed):
+
+```powershell
+.\cpat-dev-config\setup-baseline.ps1
+```
+
+> ⚠️ **May reboot.** Save your work. After signing back in, accept Microsoft's
+> resume prompt and let its setup finish before step 2.
+
+**Step 2: CPaT additions:**
+
+```powershell
+.\Start-CPaTConfig.ps1 -Profile Dev
+```
+
+Alternatively, run `.\cpat-dev-config\install.ps1`. The CPaT step does not rerun
+Microsoft setup. Running `.\Start-CPaTConfig.ps1` without a profile still lets you
+choose Dev or QA; QA remains standalone and should not receive the Full baseline.
+
+Full details: [`cpat-dev-config/README.md`](./cpat-dev-config/README.md).
+
+<br/>
+
+## 🧪 CPaT Test Config
+
+*A CPaT QA-focused workstation profile for test automation and validation workflows.*
+
+This profile is based on CPaT Dev Config but intentionally excludes WSL + Ubuntu, Docker Desktop, ABP Studio, and winappcli. It keeps core desktop/dev tooling and adds Playwright QA setup support.
+
+```powershell
+winget configure -f .\cpat-test-config\dev-config.winget --accept-configuration-agreements --disable-interactivity
+```
+
+Full details: [`cpat-test-config/README.md`](./cpat-test-config/README.md), plus the end-to-end QA onboarding guide: [`QA-SETUP-README.md`](./QA-SETUP-README.md).
 
 <br/>
 
@@ -213,7 +307,7 @@ WSL needs hardware virtualization available to the OS. Two common root causes:
 
 ## 🐛 Reporting issues
 
-Hit a bug, a stale doc, or a setup that fails on your machine? Open an issue at [github.com/microsoft/WindowsDeveloperConfig/issues](https://github.com/microsoft/WindowsDeveloperConfig/issues). Include your Windows build (`winver`), the exact command you ran, and the failing output. This helps us triage faster.
+Hit a bug, a stale doc, or a setup that fails on your machine? Open an issue at [github.com/CPaT-Global/WindowsDeveloperConfig/issues](https://github.com/CPaT-Global/WindowsDeveloperConfig/issues). Include your Windows build (`winver`), the exact command you ran, and the failing output. This helps us triage faster.
 
 <br/>
 

@@ -1,0 +1,433 @@
+# CPaT-only additions to the Microsoft Windows Dev Config Full baseline.
+# Run .\install.ps1; applying this file alone does not install the baseline.
+# Microsoft owns core tools, OS settings, fonts, Terminal, Oh My Posh, and WSL.
+
+$schema: https://raw.githubusercontent.com/PowerShell/DSC/main/schemas/2023/08/config/document.json
+metadata:
+  winget:
+    processor:
+      identifier: dscv3
+resources:
+- type: Microsoft.Windows/Registry
+  name: GitCodeFolders
+  properties:
+    keyPath: HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced
+    valueName: NavPaneShowVersionControl
+    valueData:
+      DWord: 1
+  metadata:
+    description: Enable Git integration in File Explorer
+    securityContext: elevated
+- type: Microsoft.WinGet/Package
+  name: TortoiseGit
+  properties:
+    id: TortoiseGit.TortoiseGit
+    source: winget
+    useLatest: true
+    installMode: silent
+    acceptAgreements: true
+  metadata:
+    description: Install TortoiseGit
+    securityContext: elevated
+- type: Microsoft.DSC.Transitional/PowerShellScript
+  name: VSCodeExplorerContextMenus
+  properties:
+    getScript: |
+      $isClassicForced = Test-Path 'HKCU:\Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32'
+      $appx = Get-AppxPackage -Name 'Microsoft.VisualStudioCode' -ErrorAction SilentlyContinue
+      $title = Get-ItemPropertyValue -Path 'HKCU:\Software\Classes\VSCodeContextMenu' -Name 'Title' -ErrorAction SilentlyContinue
+      return @{
+        classicMenuForced = $isClassicForced
+        appxInstalled = [bool]$appx
+        title = $title
+        configured = ($isClassicForced -or ([bool]$appx -and [string]::IsNullOrWhiteSpace($title) -eq $false))
+      }
+    testScript: |
+      $isClassicForced = Test-Path 'HKCU:\Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32'
+      if ($isClassicForced) { return $true }
+
+      $appx = Get-AppxPackage -Name 'Microsoft.VisualStudioCode' -ErrorAction SilentlyContinue
+      $title = Get-ItemPropertyValue -Path 'HKCU:\Software\Classes\VSCodeContextMenu' -Name 'Title' -ErrorAction SilentlyContinue
+      return ([bool]$appx -and [string]::IsNullOrWhiteSpace($title) -eq $false)
+    setScript: |
+      $ErrorActionPreference = 'Stop'
+
+      $isClassicForced = Test-Path 'HKCU:\Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32'
+      if ($isClassicForced) { return }
+
+      @(
+        'HKCU:\Software\Classes\*\shell\VSCode',
+        'HKCU:\Software\Classes\Directory\shell\VSCode',
+        'HKCU:\Software\Classes\Directory\Background\shell\VSCode',
+        'HKCU:\Software\Classes\Drive\shell\VSCode'
+      ) | ForEach-Object {
+        if (Test-Path $_) {
+          Remove-Item -Path $_ -Recurse -Force
+        }
+      }
+
+      $paths = @(
+        "$env:LOCALAPPDATA\Programs\Microsoft VS Code\Code.exe",
+        "$env:ProgramFiles\Microsoft VS Code\Code.exe",
+        "${env:ProgramFiles(x86)}\Microsoft VS Code\Code.exe"
+      ) | Where-Object { $_ -and (Test-Path $_) }
+      $codeExe = $paths | Select-Object -First 1
+      if (-not $codeExe) { throw 'VS Code executable was not found after VSCode package installation.' }
+
+      $installRoot = Split-Path $codeExe -Parent
+      $appxFile = Get-ChildItem -Path $installRoot -Recurse -Filter 'code_*.appx' -ErrorAction SilentlyContinue |
+        Sort-Object LastWriteTime -Descending |
+        Select-Object -First 1
+      if (-not $appxFile) {
+        throw "VS Code Explorer AppX package was not found under '$installRoot'."
+      }
+
+      $appxInstalled = Get-AppxPackage -Name 'Microsoft.VisualStudioCode' -ErrorAction SilentlyContinue
+      if (-not $appxInstalled) {
+        Add-AppxPackage -Path $appxFile.FullName -ExternalLocation $appxFile.DirectoryName
+      }
+
+      New-Item -Path 'HKCU:\Software\Classes\VSCodeContextMenu' -Force | Out-Null
+      Set-ItemProperty -Path 'HKCU:\Software\Classes\VSCodeContextMenu' -Name 'Title' -Type ExpandString -Value 'Open w&ith Code'
+
+      $verifyAppx = Get-AppxPackage -Name 'Microsoft.VisualStudioCode' -ErrorAction SilentlyContinue
+      $verifyTitle = Get-ItemPropertyValue -Path 'HKCU:\Software\Classes\VSCodeContextMenu' -Name 'Title' -ErrorAction SilentlyContinue
+      if (-not $verifyAppx -or [string]::IsNullOrWhiteSpace($verifyTitle)) {
+        throw 'VS Code Windows 11 context menu registration is incomplete.'
+      }
+  metadata:
+    description: Ensure VS Code Windows 11 context menu registration is applied
+- type: Microsoft.DSC.Transitional/PowerShellScript
+  name: VSCodeExtensions
+  properties:
+    getScript: |
+      $extensionIds = @(
+        'github.vscode-pull-request-github',
+        'microsoft-aspire.aspire-vscode',
+        'ms-azuretools.vscode-containers',
+        'ms-dotnettools.csdevkit',
+        'ms-dotnettools.csharp',
+        'ms-dotnettools.vscode-dotnet-runtime',
+        'ms-playwright.playwright',
+        'ms-vscode-remote.remote-containers'
+      )
+
+      $codeExe = @(
+        "$env:LOCALAPPDATA\Programs\Microsoft VS Code\bin\code.cmd",
+        "$env:ProgramFiles\Microsoft VS Code\bin\code.cmd",
+        "${env:ProgramFiles(x86)}\Microsoft VS Code\bin\code.cmd"
+      ) | Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1
+
+      if (-not $codeExe) {
+        return @{ cliPresent = $false; missing = $extensionIds }
+      }
+
+      $installed = @(& $codeExe --list-extensions 2>$null | ForEach-Object { $_.Trim().ToLowerInvariant() })
+      $missing = @($extensionIds | Where-Object { $installed -notcontains $_ })
+      return @{ cliPresent = $true; missing = $missing }
+    testScript: |
+      $extensionIds = @(
+        'github.vscode-pull-request-github',
+        'microsoft-aspire.aspire-vscode',
+        'ms-azuretools.vscode-containers',
+        'ms-dotnettools.csdevkit',
+        'ms-dotnettools.csharp',
+        'ms-dotnettools.vscode-dotnet-runtime',
+        'ms-playwright.playwright',
+        'ms-vscode-remote.remote-containers'
+      )
+
+      $codeExe = @(
+        "$env:LOCALAPPDATA\Programs\Microsoft VS Code\bin\code.cmd",
+        "$env:ProgramFiles\Microsoft VS Code\bin\code.cmd",
+        "${env:ProgramFiles(x86)}\Microsoft VS Code\bin\code.cmd"
+      ) | Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1
+
+      if (-not $codeExe) { return $false }
+
+      $installed = @(& $codeExe --list-extensions 2>$null | ForEach-Object { $_.Trim().ToLowerInvariant() })
+      return (@($extensionIds | Where-Object { $installed -notcontains $_ }).Count -eq 0)
+    setScript: |
+      $ErrorActionPreference = 'Stop'
+
+      $extensionIds = @(
+        'github.vscode-pull-request-github',
+        'microsoft-aspire.aspire-vscode',
+        'ms-azuretools.vscode-containers',
+        'ms-dotnettools.csdevkit',
+        'ms-dotnettools.csharp',
+        'ms-dotnettools.vscode-dotnet-runtime',
+        'ms-playwright.playwright',
+        'ms-vscode-remote.remote-containers'
+      )
+
+      $codeExe = @(
+        "$env:LOCALAPPDATA\Programs\Microsoft VS Code\bin\code.cmd",
+        "$env:ProgramFiles\Microsoft VS Code\bin\code.cmd",
+        "${env:ProgramFiles(x86)}\Microsoft VS Code\bin\code.cmd"
+      ) | Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1
+
+      if (-not $codeExe) {
+        throw 'VS Code CLI (code.cmd) was not found after VSCode package installation.'
+      }
+
+      $failed = @()
+      foreach ($extensionId in $extensionIds) {
+        & $codeExe --install-extension $extensionId --force
+        if ($LASTEXITCODE -ne 0) {
+          $failed += "$extensionId (exit code $LASTEXITCODE)"
+        }
+      }
+
+      if ($failed.Count -gt 0) {
+        throw "Failed to install VS Code extension(s): $($failed -join ', ')."
+      }
+  metadata:
+    description: Install the baseline VS Code extensions
+- type: Microsoft.WinGet/Package
+  name: Aspire
+  properties:
+    id: Microsoft.Aspire
+    source: winget
+    useLatest: true
+    installMode: silent
+    acceptAgreements: true
+  metadata:
+    description: Install Aspire CLI
+- type: Microsoft.WinGet/Package
+  name: Bruno
+  properties:
+    id: Bruno.Bruno
+    source: winget
+    useLatest: true
+    installMode: silent
+    acceptAgreements: true
+  metadata:
+    description: Install Bruno API client
+- type: Microsoft.WinGet/Package
+  name: UniGetUI
+  properties:
+    id: Devolutions.UniGetUI
+    source: winget
+    useLatest: true
+    installMode: silent
+    acceptAgreements: true
+  metadata:
+    description: Install UniGetUI package manager UI
+- type: Microsoft.WinGet/Package
+  name: Bun
+  properties:
+    id: Oven-sh.Bun
+    source: winget
+    useLatest: true
+    installMode: silent
+    acceptAgreements: true
+  metadata:
+    description: Install Bun (JavaScript runtime and package manager)
+    securityContext: elevated
+- type: Microsoft.DSC.Transitional/PowerShellScript
+  name: PlaywrightChromiumBootstrap
+  properties:
+    getScript: |
+      $playwrightCmd = Get-Command playwright -ErrorAction SilentlyContinue
+      if (-not $playwrightCmd) {
+        $candidate = Join-Path $env:APPDATA 'npm\playwright.cmd'
+        if (Test-Path $candidate) {
+          $playwrightCmd = Get-Item -LiteralPath $candidate
+        }
+      }
+
+      $browserRoot = Join-Path $env:LOCALAPPDATA 'ms-playwright'
+      $hasChromium = [bool](Get-ChildItem -Path $browserRoot -Directory -Filter 'chromium-*' -ErrorAction SilentlyContinue | Select-Object -First 1)
+      return @{ cliPresent = [bool]$playwrightCmd; chromiumInstalled = $hasChromium }
+    testScript: |
+      $playwrightCmd = Get-Command playwright -ErrorAction SilentlyContinue
+      if (-not $playwrightCmd) {
+        $candidate = Join-Path $env:APPDATA 'npm\playwright.cmd'
+        if (Test-Path $candidate) {
+          $playwrightCmd = Get-Item -LiteralPath $candidate
+        }
+      }
+
+      $browserRoot = Join-Path $env:LOCALAPPDATA 'ms-playwright'
+      $hasChromium = [bool](Get-ChildItem -Path $browserRoot -Directory -Filter 'chromium-*' -ErrorAction SilentlyContinue | Select-Object -First 1)
+      return ([bool]$playwrightCmd -and $hasChromium)
+    setScript: |
+      $ErrorActionPreference = 'Stop'
+
+      $npm = Get-Command npm -ErrorAction Stop
+      & $npm.Source install --global playwright
+      if ($LASTEXITCODE -ne 0) {
+        throw "Failed to install Playwright npm package (exit code $LASTEXITCODE)."
+      }
+
+      $playwrightExe = Join-Path $env:APPDATA 'npm\playwright.cmd'
+      if (-not (Test-Path $playwrightExe)) {
+        $playwright = Get-Command playwright -ErrorAction SilentlyContinue
+        if ($playwright) {
+          $playwrightExe = $playwright.Source
+        }
+      }
+
+      if (-not (Test-Path $playwrightExe)) {
+        throw 'Playwright CLI was not found after npm global install.'
+      }
+
+      & $playwrightExe install chromium
+      if ($LASTEXITCODE -ne 0) {
+        throw "Failed to install Playwright Chromium browser (exit code $LASTEXITCODE)."
+      }
+  metadata:
+    description: Install Playwright CLI and Chromium browser
+- type: Microsoft.WinGet/Package
+  name: Chrome
+  properties:
+    id: Google.Chrome
+    source: winget
+    useLatest: true
+    installMode: silent
+    acceptAgreements: true
+  metadata:
+    description: Install Google Chrome
+    securityContext: elevated
+- type: Microsoft.WinGet/Package
+  name: DockerDesktop
+  properties:
+    id: Docker.DockerDesktop
+    source: winget
+    useLatest: true
+    installMode: silent
+    acceptAgreements: true
+  metadata:
+    description: Install Docker Desktop
+    securityContext: elevated
+- type: Microsoft.WinGet/Package
+  name: ABPStudio
+  properties:
+    id: XP9MGBQV4XPRJD
+    source: msstore
+    acceptAgreements: true
+    useLatest: true
+    installMode: silent
+  metadata:
+    description: Install ABP Studio (Microsoft Store)
+    securityContext: elevated
+- type: Microsoft.WinGet/Package
+  name: Glow
+  properties:
+    id: charmbracelet.glow
+    source: winget
+    useLatest: true
+    installMode: silent
+    acceptAgreements: true
+  metadata:
+    description: Install glow (terminal markdown renderer)
+    securityContext: elevated
+- type: Microsoft.WinGet/Package
+  name: Ripgrep
+  properties:
+    id: BurntSushi.ripgrep.MSVC
+    source: winget
+    useLatest: true
+    installMode: silent
+    acceptAgreements: true
+  metadata:
+    description: Install ripgrep
+    securityContext: elevated
+- type: Microsoft.WinGet/Package
+  name: FD
+  properties:
+    id: sharkdp.fd
+    source: winget
+    useLatest: true
+    installMode: silent
+    acceptAgreements: true
+  metadata:
+    description: Install fd
+    securityContext: elevated
+- type: Microsoft.WinGet/Package
+  name: JQ
+  properties:
+    id: jqlang.jq
+    source: winget
+    useLatest: true
+    installMode: silent
+    acceptAgreements: true
+  metadata:
+    description: Install jq
+    securityContext: elevated
+- type: Microsoft.WinGet/Package
+  name: Bat
+  properties:
+    id: sharkdp.bat
+    source: winget
+    useLatest: true
+    installMode: silent
+    acceptAgreements: true
+  metadata:
+    description: Install bat
+    securityContext: elevated
+- type: Microsoft.WinGet/Package
+  name: FZF
+  properties:
+    id: junegunn.fzf
+    source: winget
+    useLatest: true
+    installMode: silent
+    acceptAgreements: true
+  metadata:
+    description: Install fzf
+    securityContext: elevated
+- type: Microsoft.WinGet/Package
+  name: GitDelta
+  properties:
+    id: dandavison.delta
+    source: winget
+    useLatest: true
+    installMode: silent
+    acceptAgreements: true
+  metadata:
+    description: Install git-delta
+    securityContext: elevated
+- type: Microsoft.WinGet/Package
+  name: WireGuard
+  properties:
+    id: WireGuard.WireGuard
+    source: winget
+    useLatest: true
+    installMode: silent
+    acceptAgreements: true
+  metadata:
+    description: Install WireGuard (wg)
+    securityContext: elevated
+- type: Microsoft.DSC.Transitional/PowerShellScript
+  name: PwshProfileFunctions
+  properties:
+    getScript: |
+      $profilePath = Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'PowerShell\Microsoft.PowerShell_profile.ps1'
+      $hasBlock = (Test-Path $profilePath) -and ((Get-Content -LiteralPath $profilePath -Raw) -match '# BEGIN DevConfig helper functions')
+      return @{ profilePath = $profilePath; helpersPresent = $hasBlock }
+    testScript: |
+      $profilePath = Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'PowerShell\Microsoft.PowerShell_profile.ps1'
+      return ((Test-Path $profilePath) -and ((Get-Content -LiteralPath $profilePath -Raw) -match '# BEGIN DevConfig helper functions'))
+    setScript: |
+      $ErrorActionPreference = 'Stop'
+
+      $profilePath = Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'PowerShell\Microsoft.PowerShell_profile.ps1'
+      New-Item -ItemType Directory -Path (Split-Path -Parent $profilePath) -Force | Out-Null
+      if (-not (Test-Path $profilePath)) {
+        New-Item -ItemType File -Path $profilePath -Force | Out-Null
+      }
+
+      $block = @'
+      # BEGIN DevConfig helper functions
+      function ll {
+          Get-ChildItem -Force @args
+      }
+      # END DevConfig helper functions
+      '@
+
+      Add-Content -LiteralPath $profilePath -Value "`r`n$block" -Encoding UTF8
+      Write-Host "Added helper functions to $profilePath" -ForegroundColor Green
+  metadata:
+    description: Add helper functions (ll) to the PowerShell 7 profile
